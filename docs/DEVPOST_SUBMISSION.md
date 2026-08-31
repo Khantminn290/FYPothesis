@@ -112,13 +112,21 @@ entirely new learning algorithm.
 
 ## Reproduce
 
+From the repository root, after completing the README setup and installing
+KuaiRand-Pure:
+
 ```bash
-python3 tests/test_harness.py
+python3 -m agent.baseline_repro
 python3 -m agent.final_ensemble --seeds 16
 python3 -m agent.verify_incumbent
+python3 tests/test_harness.py
+python3 -m agent.make_submission --split valid --out submission_valid.csv --score --ensemble
 python3 -m agent.recovery_eval
 streamlit run app.py
 ```
+
+The README contains the complete setup, test-submission schema check, expected
+metrics, and an explanation of the one-shot hidden-test lock.
 
 Generated from `results/manifest.json`; do not edit score or resource figures by
 hand.

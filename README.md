@@ -144,8 +144,8 @@ cd FYPothesis
 
 python3.12 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
 ```
 
 Download KuaiRand-Pure into the Starter Kit directory. The archive is ignored by
@@ -174,16 +174,14 @@ and must never be committed.
 
 Run every command below from the repository root after installing the dataset.
 
-### 1. Verify the harness and official baseline
+### 1. Reproduce the official baseline
 
 ```bash
-python tests/test_harness.py
-python -m agent.baseline_repro
+python3 -m agent.baseline_repro
 ```
 
-The harness makes no LLM calls. Some executor-boundary tests load the local
-KuaiRand cache, so the dataset must be installed first. The baseline command
-stores the organizer-script hashes and reproduced metrics under `logs/baseline/`.
+The baseline command stores the organizer-script hashes and reproduced metrics
+under `logs/baseline/`.
 
 ### 2. Rebuild and verify the submitted validation model
 
@@ -191,8 +189,8 @@ Prediction arrays are intentionally not committed. Rebuild all 16 fixed members,
 then recompute the ensemble with the unchanged evaluator:
 
 ```bash
-python -m agent.final_ensemble --seeds 16
-python -m agent.verify_incumbent
+python3 -m agent.final_ensemble --seeds 16
+python3 -m agent.verify_incumbent
 ```
 
 Expected validation result:
@@ -201,35 +199,50 @@ Expected validation result:
 GAUC 0.67212 | nDCG@5 0.53870 | primary 0.60541
 ```
 
-### 3. Rebuild and validate submission files
+### 3. Run the verification and recovery suites
 
 ```bash
-python -m agent.make_submission \
+python3 tests/test_harness.py
+python3 -m agent.recovery_eval
+```
+
+The harness makes no LLM calls. It is run after rebuilding the ensemble because
+the generated prediction arrays are intentionally excluded from Git. Some
+executor-boundary tests also load the local KuaiRand cache, so the dataset must
+be installed first. The deterministic recovery evaluation also makes no API
+call; it exercises runtime-error, malformed-artifact, and timeout recovery
+through the real loop and executor.
+
+### 4. Rebuild and validate submission files
+
+```bash
+python3 -m agent.make_submission \
   --split valid --out submission_valid.csv --score --ensemble
 
-python -m agent.make_submission \
+python3 -m agent.make_submission \
   --split test --out submission_test.csv --ensemble
 
-python kuairand-starter-kit/submit.py \
+python3 kuairand-starter-kit/submit.py \
   --data_dir kuairand-starter-kit/KuaiRand-Pure/data \
   --check --split test submission_test.csv
 ```
 
-These commands regenerate predictions and validate schema/alignment. They do not
-repeat the hidden-test evaluation. The one allowed evaluation has already been
-recorded, and `--final-test-eval` now refuses to run because the lock exists.
+These commands build the CSV files from the prediction arrays created in step 2
+and validate schema/alignment. They do not repeat the hidden-test evaluation.
+The one allowed evaluation has already been recorded, and `--final-test-eval`
+now refuses to run because the lock exists.
 
-### 4. Regenerate submission documents
+### 5. Regenerate submission documents
 
 ```bash
-python -m agent.iteration_log
-python -m agent.manifest
-python -m agent.results_report
-python -m agent.judge_packet
-python -m agent.devpost
+python3 -m agent.iteration_log
+python3 -m agent.manifest --run-tests
+python3 -m agent.results_report --run-tests
+python3 -m agent.judge_packet
+python3 -m agent.devpost
 ```
 
-### 5. Open the proof dashboard
+### 6. Open the proof dashboard
 
 ```bash
 streamlit run app.py
@@ -239,17 +252,18 @@ The dashboard renders the committed manifest, journal, recovery evidence, final
 result, and downloadable submission documents. It can also launch a new live
 research run, but only after the user explicitly arms the LLM-budget control.
 The one-time hidden-test evaluation is never exposed as a dashboard button.
-For recording or judging walkthroughs, the **Demo run** tab provides a clearly
-labelled 24-second simulation of observation, hypothesis selection, preflight
-rejection, recovery, evaluation, paired confirmation, ensembling, and stopping;
-it starts no training process and makes no API call.
+For recording or judging walkthroughs, the **Demo run** tab replays a preloaded
+branching journal after the judge presses **Start demo**. It demonstrates
+observation, hypothesis selection, preflight rejection, recovery, evaluation,
+paired confirmation, ensembling, and stopping without starting training or
+making an API call.
 
-### 6. Start a new autonomous competition run
+### 7. Start a new autonomous competition run
 
 This is optional, uses the configured LLM API, and creates a new research run:
 
 ```bash
-python run_agent.py --competition --fresh
+python3 run_agent.py --competition --fresh
 ```
 
 The resolved model, spend limit, iteration limit, training-run limit, and

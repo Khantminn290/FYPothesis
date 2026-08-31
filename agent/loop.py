@@ -80,9 +80,11 @@ class AgentLoop:
                  enable_feature_discovery: bool = False,
                  n_candidates: int = 0,
                  max_training_runs: int | None = None,
-                 competition_mode: bool = False):
+                 competition_mode: bool = False,
+                 llm_client=None,
+                 log_dir: str | None = None):
         self.root = root
-        self.log_dir = os.path.join(root, "logs")
+        self.log_dir = log_dir or os.path.join(root, "logs")
         self.solutions_dir = os.path.join(self.log_dir, "solutions")
         self.runs_dir = os.path.join(self.log_dir, "runs")
         self.diffs_dir = os.path.join(self.log_dir, "diffs")
@@ -91,7 +93,10 @@ class AgentLoop:
         os.makedirs(self.diffs_dir, exist_ok=True)
         self.menu = Menu(os.path.join(root, "config", "modification_menu.json"),
                          allow_locked_options=allow_locked_options)
-        self.llm = LLMClient(model=llm_model, test=test_model)
+        # Dependency injection keeps deterministic/offline evaluations from
+        # requiring a real provider key merely to construct the loop.
+        self.llm = (llm_client if llm_client is not None
+                    else LLMClient(model=llm_model, test=test_model))
         self.tree = ExperimentTree(self.log_dir)
         self.max_iterations = max_iterations
         self.wall_clock_limit_s = wall_clock_limit_h * 3600

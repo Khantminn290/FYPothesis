@@ -16,7 +16,7 @@
       "unique_observations": 1,
       "manual_interventions": 0,
       "recovered": true,
-      "elapsed_s": 20.89,
+      "elapsed_s": 16.99,
       "nodes": [
         {
           "iteration_id": 0,
@@ -24,7 +24,7 @@
           "action": "draft",
           "status": "error",
           "primary": null,
-          "wall_clock_seconds": 0.026,
+          "wall_clock_seconds": 0.024,
           "error_head": "exit code 1",
           "decide_reason": "only 0 attempts exist (< draft_count=1); drafting a fresh combination, prioritizing untried high-priority axes"
         },
@@ -34,7 +34,7 @@
           "action": "debug",
           "status": "success",
           "primary": 0.6014769439448429,
-          "wall_clock_seconds": 20.097,
+          "wall_clock_seconds": 16.728,
           "error_head": "",
           "decide_reason": "last attempt (node 0) errored; debug chain length 0 < 2, feeding the error trace back to fix it"
         }
@@ -52,7 +52,7 @@
       "unique_observations": 1,
       "manual_interventions": 0,
       "recovered": true,
-      "elapsed_s": 19.51,
+      "elapsed_s": 16.89,
       "nodes": [
         {
           "iteration_id": 0,
@@ -60,7 +60,7 @@
           "action": "draft",
           "status": "error",
           "primary": null,
-          "wall_clock_seconds": 0.121,
+          "wall_clock_seconds": 0.098,
           "error_head": "script exited 0 but violated the output contract:",
           "decide_reason": "only 0 attempts exist (< draft_count=1); drafting a fresh combination, prioritizing untried high-priority axes"
         },
@@ -70,7 +70,7 @@
           "action": "debug",
           "status": "success",
           "primary": 0.6014769439448429,
-          "wall_clock_seconds": 18.95,
+          "wall_clock_seconds": 16.499,
           "error_head": "",
           "decide_reason": "last attempt (node 0) errored; debug chain length 0 < 2, feeding the error trace back to fix it"
         }
@@ -88,7 +88,7 @@
       "unique_observations": 1,
       "manual_interventions": 0,
       "recovered": true,
-      "elapsed_s": 20.58,
+      "elapsed_s": 17.76,
       "nodes": [
         {
           "iteration_id": 0,
@@ -96,7 +96,7 @@
           "action": "draft",
           "status": "error",
           "primary": null,
-          "wall_clock_seconds": 1.005,
+          "wall_clock_seconds": 1.009,
           "error_head": "TIMEOUT: training run exceeded 1s and was killed.",
           "decide_reason": "only 0 attempts exist (< draft_count=1); drafting a fresh combination, prioritizing untried high-priority axes"
         },
@@ -106,7 +106,7 @@
           "action": "draft",
           "status": "success",
           "primary": 0.6014769439448429,
-          "wall_clock_seconds": 19.047,
+          "wall_clock_seconds": 16.276,
           "error_head": "",
           "decide_reason": "pivoting away from node 0: timeout requires a materially cheaper experiment, not an unchanged debug retry"
         }

@@ -13,7 +13,6 @@ import os
 import tempfile
 import time
 
-from .contracts import ExperimentTree
 from .loop import AgentLoop
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -26,6 +25,11 @@ class ScriptedLLM:
 
     def __init__(self, responses: list[dict]):
         self.responses = list(responses)
+        self.total_usage = {
+            "input_tokens": 0, "output_tokens": 0,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0, "calls": 0,
+        }
 
     def structured_call(self, _prompt, validate_choices=None):
         if not self.responses:
@@ -36,7 +40,12 @@ class ScriptedLLM:
         usage = {"input_tokens": 0, "output_tokens": 0,
                  "cache_creation_input_tokens": 0,
                  "cache_read_input_tokens": 0}
+        self.total_usage["calls"] += 1
         return obj, usage, [{"type": "scripted_recovery_response"}]
+
+    def tokens_for_report(self):
+        return {**self.total_usage, "provider": self.provider,
+                "model": self.model, "input_plus_output": 0}
 
 
 def _response(code: str, hypothesis: str) -> dict:
@@ -100,23 +109,15 @@ def _timeout_code() -> str:
 
 def _make_loop(td: str, responses: list[dict], timeout_s: int,
                inject_error_at: int | None = None) -> AgentLoop:
+    scripted = ScriptedLLM(responses)
     loop = AgentLoop(ROOT, max_iterations=2, wall_clock_limit_h=0.25,
                      exec_timeout_s=timeout_s, draft_count=1,
                      max_training_runs=2, max_spend_usd=1,
-                     inject_error_at=inject_error_at)
-    loop.log_dir = td
-    loop.solutions_dir = os.path.join(td, "solutions")
-    loop.runs_dir = os.path.join(td, "runs")
-    loop.diffs_dir = os.path.join(td, "diffs")
-    for path in (loop.solutions_dir, loop.runs_dir, loop.diffs_dir):
-        os.makedirs(path, exist_ok=True)
-    loop.tree = ExperimentTree(td)
+                     inject_error_at=inject_error_at, llm_client=scripted,
+                     log_dir=td)
     defaults = loop.menu.default_choices()
     for response in responses:
         response["menu_choices"] = dict(defaults)
-    loop.llm = ScriptedLLM(responses)
-    loop.spend.provider = loop.llm.provider
-    loop.spend.model = loop.llm.model
     loop._record_experience = lambda *_args, **_kwargs: None
     return loop
 

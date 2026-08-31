@@ -3982,6 +3982,9 @@ def test_epoch_sensitivity_is_diagnostic_only():
 
 def test_closed_loop_recovery_evidence():
     print("\n[closed-loop recovery evidence]")
+    src = open(os.path.join(_ROOT, "agent", "recovery_eval.py")).read()
+    check("offline recovery injects its scripted LLM before loop construction",
+          "llm_client=scripted" in src and "log_dir=td" in src)
     p = os.path.join(_ROOT, "results", "recovery_eval.json")
     check("the isolated recovery report exists", os.path.exists(p))
     if not os.path.exists(p):
