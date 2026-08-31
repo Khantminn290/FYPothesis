@@ -1,6 +1,6 @@
 # Autonomous ML Research Agent — KuaiRand-Pure
 
-*Generated from `results/manifest.json` on 2026-08-31T19:38:16Z at commit `656afd3f9777` (main).*
+*Generated from `results/manifest.json` on 2026-08-31T19:39:31Z at commit `a3c4a6853964` (main).*
 
 Every number in this document is read from that manifest, which is generated from artifacts on disk. Nothing is transcribed by hand.
 
@@ -191,6 +191,8 @@ This level drives the real `AgentLoop.iterate`, search policy, preflight, sandbo
 - `timeout_reroute`: error -> `draft` -> success; 2 runs spent, 1 observation credited
 
 Artifacts: `results/recovery_eval.json`<br>Reproduce: `python3 -m agent.recovery_eval`
+
+Test harness: **1126 passed, 0 failed** (23.5s).
 
 ## 10. Convergence
 

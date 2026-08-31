@@ -1,33 +1,16 @@
 {
   "schema": "results_manifest/1",
-  "generated_utc": "2026-08-31T19:38:16Z",
+  "generated_utc": "2026-08-31T19:39:31Z",
   "generator": "python3 -m agent.manifest",
   "repository": {
-    "sha": "656afd3f9777300e36b4f772c6a58469c5e9ef43",
-    "short_sha": "656afd3f9777",
+    "sha": "a3c4a685396473f4f76bfc3a6cf2fae1d0b4a814",
+    "short_sha": "a3c4a6853964",
     "branch": "main",
-    "dirty": true,
-    "dirty_files": 15,
-    "source_dirty": true,
-    "source_dirty_files": [
-      "README.md",
-      ".env.example",
-      ".gitignore",
-      "agent/",
-      "app.py",
-      "config/",
-      "docs/",
-      "kuairand-starter-kit/",
-      "requirements.txt",
-      "run_agent.py",
-      "runtime/",
-      "tests/"
-    ],
-    "generated_dirty_files": [
-      "RESULTS.md",
-      "logs/",
-      "results/"
-    ]
+    "dirty": false,
+    "dirty_files": 0,
+    "source_dirty": false,
+    "source_dirty_files": [],
+    "generated_dirty_files": []
   },
   "dataset": {
     "name": "KuaiRand-Pure",
@@ -488,8 +471,10 @@
     }
   },
   "tests": {
-    "executed": false,
-    "note": "pass --run-tests for a live count"
+    "executed": true,
+    "passed": 1126,
+    "failed": 0,
+    "seconds": 23.5
   },
   "submission_artifacts": {
     "valid": {
