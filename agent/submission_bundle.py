@@ -80,6 +80,11 @@ code-diff link, GAUC, nDCG@5, and error/recovery record for every journal node.
 - Manual interventions: {summary['manual_interventions']}
 - Raw append-only record: `journal.jsonl`
 - Exact diffs and generated scripts: `diffs/` and `solutions/`
+
+The raw journal intentionally preserves the absolute `code_path` values from
+the original execution checkout (`Tiktok-TechJam-2026`) before this repository
+was moved. The byte-preserved scripts are available here under `solutions/`,
+and every script/diff link in `RUN_AND_ITERATION_LOG.md` resolves locally.
 """
     (run_dir / "README.md").write_text(run_readme)
 
