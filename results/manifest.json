@@ -1,30 +1,16 @@
 {
   "schema": "results_manifest/1",
-  "generated_utc": "2026-08-31T20:07:09Z",
+  "generated_utc": "2026-08-31T20:11:04Z",
   "generator": "python3 -m agent.manifest",
   "repository": {
-    "sha": "23cbb1fda1762705144f1ff8b49771792d7f97e2",
-    "short_sha": "23cbb1fda176",
+    "sha": "19b36dd904106d7dd499d858e7506d223223c3c2",
+    "short_sha": "19b36dd90410",
     "branch": "main",
-    "dirty": true,
-    "dirty_files": 12,
-    "source_dirty": true,
-    "source_dirty_files": [
-      "README.md",
-      "agent/devpost.py",
-      "agent/loop.py",
-      "agent/recovery_eval.py",
-      "tests/test_harness.py"
-    ],
-    "generated_dirty_files": [
-      "RESULTS.md",
-      "docs/DEVPOST_SUBMISSION.md",
-      "logs/baseline/metrics.json",
-      "logs/baseline/stdout.txt",
-      "results/JUDGE_PACKET.md",
-      "results/manifest.json",
-      "results/recovery_eval.json"
-    ]
+    "dirty": false,
+    "dirty_files": 0,
+    "source_dirty": false,
+    "source_dirty_files": [],
+    "generated_dirty_files": []
   },
   "dataset": {
     "name": "KuaiRand-Pure",
@@ -488,7 +474,7 @@
     "executed": true,
     "passed": 1127,
     "failed": 0,
-    "seconds": 23.4
+    "seconds": 22.8
   },
   "submission_artifacts": {
     "valid": {

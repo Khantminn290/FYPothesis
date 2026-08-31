@@ -237,9 +237,9 @@ now refuses to run because the lock exists.
 ```bash
 python3 -m agent.iteration_log
 python3 -m agent.manifest --run-tests
-python3 -m agent.results_report --run-tests
 python3 -m agent.judge_packet
 python3 -m agent.devpost
+python3 -m agent.results_report --run-tests
 ```
 
 ### 6. Open the proof dashboard
