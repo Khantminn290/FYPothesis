@@ -3503,6 +3503,15 @@ def test_streamlit_dashboard_executes():
           "FYPothesis" in src
           and ('st.tabs(["📌 Overview", "⚙️ Start a run", "▶️ Watch a run",\n'
                '                "🎬 Demo run"])') in src)
+    check("public showcase mode disables real runs by default",
+          '"FYPOTHESIS_ENABLE_REAL_RUNS", "0"' in src
+          and "disabled=(not REAL_RUNS_ENABLED" in src
+          and "if go and REAL_RUNS_ENABLED and armed and not running:" in src)
+    hosted = os.path.join(_ROOT, "dashboard", "streamlit_app.py")
+    check("the hosted entrypoint forcibly locks paid execution",
+          os.path.exists(hosted)
+          and 'os.environ["FYPOTHESIS_ENABLE_REAL_RUNS"] = "0"'
+          in open(hosted).read())
     check("the demo has one plain start action with no replay banner",
           'st.header("Demo run")' in src
           and 'st.button("▶ Start demo", type="primary")' in src
@@ -3620,7 +3629,7 @@ def test_streamlit_dashboard_executes():
     run_tab = src.split("# --------------------------------------------------------------------- run ---")[1]
     check("a live run requires explicit budget arming",
           'key="arm_run"' in run_tab and "armed" in run_tab
-          and "if go and armed and not running:" in run_tab)
+          and "if go and REAL_RUNS_ENABLED and armed and not running:" in run_tab)
     check("a dashboard-launched run is timestamped in its own log",
           "launched from the dashboard at" in run_tab
           and "dashboard_run.log" in run_tab)

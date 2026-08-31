@@ -31,6 +31,13 @@ LOGS = os.path.join(ROOT, "logs")
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
+# The dashboard is a read-only showcase unless a local operator explicitly
+# opts into paid execution. The hosted entrypoint also forces this flag off, so
+# deploying the app cannot expose an LLM-spending subprocess by accident.
+REAL_RUNS_ENABLED = os.getenv(
+    "FYPOTHESIS_ENABLE_REAL_RUNS", "0").strip().lower() in {
+        "1", "true", "yes", "on"}
+
 from agent import live as L  # noqa: E402
 
 NOISE = 0.0008
@@ -585,7 +592,7 @@ def render_demo_run():
         }], width="stretch", hide_index=True)
 
 
-running = L._agent_running()
+running = L._agent_running() if REAL_RUNS_ENABLED else False
 
 st.title("FYPothesis")
 st.markdown(
@@ -596,6 +603,9 @@ st.markdown(
     unsafe_allow_html=True)
 if running:
     st.success("🟢 An agent run is in progress — see **Watch a run**.")
+if not REAL_RUNS_ENABLED:
+    st.info("🔒 Public showcase mode: paid LLM runs are disabled. Open "
+            "**Demo run** to watch a complete autonomous research cycle.")
 
 tabs = st.tabs(["📌 Overview", "⚙️ Start a run", "▶️ Watch a run",
                 "🎬 Demo run"])
@@ -1010,6 +1020,10 @@ with tabs[3]:
 # --------------------------------------------------------------------- run ---
 with tabs[1]:
     st.header("Start a run")
+    if not REAL_RUNS_ENABLED:
+        st.warning("This public deployment is read-only. Run controls are "
+                   "locked so visitors cannot spend LLM budget or start "
+                   "training jobs; the Demo run remains fully available.")
     if running:
         st.warning("A run is already in progress — see **Watch a run**.")
 
@@ -1020,16 +1034,23 @@ with tabs[1]:
 
     c = st.columns(4)
     iters = c[0].number_input("Decisions", 1, 50, 12,
-                              help="outer-loop iterations")
+                              help="outer-loop iterations",
+                              disabled=not REAL_RUNS_ENABLED)
     truns = c[1].number_input("Training runs", 1, 300, 90,
                               help="an ensemble or paired confirmation costs "
-                                   "several of these but only one decision")
-    spend_cap = c[2].number_input("Spend cap ($)", 0.5, 50.0, 6.0, step=0.5)
-    hours = c[3].number_input("Wall-clock (h)", 0.25, 8.0, 2.0, step=0.25)
+                                   "several of these but only one decision",
+                              disabled=not REAL_RUNS_ENABLED)
+    spend_cap = c[2].number_input(
+        "Spend cap ($)", 0.5, 50.0, 6.0, step=0.5,
+        disabled=not REAL_RUNS_ENABLED)
+    hours = c[3].number_input(
+        "Wall-clock (h)", 0.25, 8.0, 2.0, step=0.25,
+        disabled=not REAL_RUNS_ENABLED)
     fresh = st.checkbox("Archive previous run logs first", value=True,
                         help="Submission artifacts always survive: the "
                              "ensemble, its members, research memory and the "
-                             "feature registry are never archived.")
+                             "feature registry are never archived.",
+                        disabled=not REAL_RUNS_ENABLED)
 
     cmd = [sys.executable, "run_agent.py", "--competition",
            "--max-iterations", str(iters), "--max-training-runs", str(truns),
@@ -1039,9 +1060,11 @@ with tabs[1]:
     st.code(" ".join(["python3"] + cmd[1:]), language="bash")
 
     armed = st.checkbox("I want to start a real run (spends LLM budget)",
-                        value=False, key="arm_run")
-    go = st.button("▶️ Start run", type="primary", disabled=running or not armed)
-    if go and armed and not running:
+                        value=False, key="arm_run",
+                        disabled=not REAL_RUNS_ENABLED)
+    go = st.button("▶️ Start run", type="primary",
+                   disabled=(not REAL_RUNS_ENABLED or running or not armed))
+    if go and REAL_RUNS_ENABLED and armed and not running:
         logf = os.path.join(LOGS, "dashboard_run.log")
         os.makedirs(LOGS, exist_ok=True)
         with open(logf, "w") as fh:

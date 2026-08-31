@@ -248,13 +248,26 @@ streamlit run app.py
 
 The dashboard renders the committed manifest, journal, recovery evidence, final
 result, and downloadable submission documents. It can also launch a new live
-research run, but only after the user explicitly arms the LLM-budget control.
+research run only when a local operator explicitly enables that capability.
+By default it starts in public showcase mode: all paid-run controls are disabled,
+while the complete branching **Demo run** remains available.
 The one-time hidden-test evaluation is never exposed as a dashboard button.
 For recording or judging walkthroughs, the **Demo run** tab replays a preloaded
 branching journal after the judge presses **Start demo**. It demonstrates
 observation, hypothesis selection, preflight rejection, recovery, evaluation,
 paired confirmation, ensembling, and stopping without starting training or
 making an API call.
+
+To enable dashboard-launched runs in a trusted local environment only:
+
+```bash
+FYPOTHESIS_ENABLE_REAL_RUNS=1 streamlit run app.py
+```
+
+For Streamlit Community Cloud, deploy branch `main` with entrypoint
+`dashboard/streamlit_app.py` and Python 3.12. Leave the Secrets field empty—the
+deployment entrypoint forcibly keeps paid execution disabled and uses the
+lightweight dependencies in `dashboard/requirements.txt`.
 
 ### 7. Start a new autonomous competition run
 
@@ -335,4 +348,3 @@ and presentation work:
 - **Bill Sujith Kumaar** contributed to the Streamlit interface and submission
   presentation, including the experiment tree, run-detail views, result
   summaries, judge-facing usability, and final quality assurance.
-
