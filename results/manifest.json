@@ -1,0 +1,776 @@
+{
+  "schema": "results_manifest/1",
+  "generated_utc": "2026-08-31T19:38:16Z",
+  "generator": "python3 -m agent.manifest",
+  "repository": {
+    "sha": "656afd3f9777300e36b4f772c6a58469c5e9ef43",
+    "short_sha": "656afd3f9777",
+    "branch": "main",
+    "dirty": true,
+    "dirty_files": 15,
+    "source_dirty": true,
+    "source_dirty_files": [
+      "README.md",
+      ".env.example",
+      ".gitignore",
+      "agent/",
+      "app.py",
+      "config/",
+      "docs/",
+      "kuairand-starter-kit/",
+      "requirements.txt",
+      "run_agent.py",
+      "runtime/",
+      "tests/"
+    ],
+    "generated_dirty_files": [
+      "RESULTS.md",
+      "logs/",
+      "results/"
+    ]
+  },
+  "dataset": {
+    "name": "KuaiRand-Pure",
+    "scope": "Pure only",
+    "fingerprint": {
+      "available": true,
+      "sha256": "60fa8bc44d1e3d59",
+      "splits": {
+        "train": {
+          "rows": 1141112,
+          "columns": [
+            "author",
+            "date",
+            "duration_ms",
+            "hourmin",
+            "is_click",
+            "is_comment",
+            "is_follow",
+            "is_forward",
+            "is_hate",
+            "is_like",
+            "is_profile_enter",
+            "long_view",
+            "play_time_ms",
+            "tab",
+            "time_ms",
+            "user",
+            "user_raw",
+            "video"
+          ]
+        },
+        "valid": {
+          "rows": 124909,
+          "columns": [
+            "author",
+            "date",
+            "duration_ms",
+            "hourmin",
+            "is_click",
+            "is_comment",
+            "is_follow",
+            "is_forward",
+            "is_hate",
+            "is_like",
+            "is_profile_enter",
+            "long_view",
+            "play_time_ms",
+            "tab",
+            "time_ms",
+            "user",
+            "user_raw",
+            "video"
+          ]
+        },
+        "test": {
+          "rows": 170588,
+          "columns": [
+            "author",
+            "date",
+            "duration_ms",
+            "hourmin",
+            "is_click",
+            "is_comment",
+            "is_follow",
+            "is_forward",
+            "is_hate",
+            "is_like",
+            "is_profile_enter",
+            "long_view",
+            "play_time_ms",
+            "tab",
+            "time_ms",
+            "user",
+            "user_raw",
+            "video"
+          ]
+        }
+      },
+      "dataset": "KuaiRand-Pure"
+    },
+    "evaluator_sha256": "ecfde28392eb14fe"
+  },
+  "baseline": {
+    "validation": {
+      "primary": 0.6016,
+      "GAUC": 0.6674,
+      "nDCG@5": 0.5357
+    },
+    "hidden_test": {
+      "primary": 0.5946,
+      "GAUC": 0.661,
+      "nDCG@5": 0.5282
+    },
+    "source": "kuairand-starter-kit/baseline_scores.json"
+  },
+  "submitted": {
+    "kind": "ensemble",
+    "source_node": 4,
+    "official_eligible": true,
+    "official_convergence_node": 8,
+    "members": 16,
+    "aggregation": "rank_normalise_then_mean",
+    "reported": {
+      "primary": 0.60541,
+      "GAUC": 0.67212,
+      "nDCG@5": 0.5387
+    },
+    "single_member_mean": 0.60463,
+    "single_member_std": 0.00032,
+    "gain_over_mean_member": 0.00078,
+    "config": {
+      "loss": "bpr_pairwise",
+      "neg_sampling": "uniform_1",
+      "user_history": "recency_weighted_pool",
+      "multitask": "none",
+      "model": "fm_numpy",
+      "temporal": "hour_plus_dow",
+      "training": "lower_lr_longer",
+      "data_extras": "none",
+      "sample_weighting": "per_row",
+      "regularization": "l2_default"
+    },
+    "provenance": {
+      "schema": "provenance/1",
+      "stamped_utc": "2026-08-31T19:32:06Z",
+      "git": {
+        "sha": "656afd3f9777300e36b4f772c6a58469c5e9ef43",
+        "short_sha": "656afd3f9777",
+        "branch": "main",
+        "dirty": true,
+        "dirty_files": 15,
+        "source_dirty": true,
+        "source_dirty_files": [
+          "README.md",
+          ".env.example",
+          ".gitignore",
+          "agent/",
+          "app.py",
+          "config/",
+          "docs/",
+          "kuairand-starter-kit/",
+          "requirements.txt",
+          "run_agent.py",
+          "runtime/",
+          "tests/"
+        ],
+        "generated_dirty_files": [
+          "RESULTS.md",
+          "logs/",
+          "results/"
+        ]
+      },
+      "data": {
+        "available": true,
+        "sha256": "60fa8bc44d1e3d59",
+        "splits": {
+          "train": {
+            "rows": 1141112,
+            "columns": [
+              "author",
+              "date",
+              "duration_ms",
+              "hourmin",
+              "is_click",
+              "is_comment",
+              "is_follow",
+              "is_forward",
+              "is_hate",
+              "is_like",
+              "is_profile_enter",
+              "long_view",
+              "play_time_ms",
+              "tab",
+              "time_ms",
+              "user",
+              "user_raw",
+              "video"
+            ]
+          },
+          "valid": {
+            "rows": 124909,
+            "columns": [
+              "author",
+              "date",
+              "duration_ms",
+              "hourmin",
+              "is_click",
+              "is_comment",
+              "is_follow",
+              "is_forward",
+              "is_hate",
+              "is_like",
+              "is_profile_enter",
+              "long_view",
+              "play_time_ms",
+              "tab",
+              "time_ms",
+              "user",
+              "user_raw",
+              "video"
+            ]
+          },
+          "test": {
+            "rows": 170588,
+            "columns": [
+              "author",
+              "date",
+              "duration_ms",
+              "hourmin",
+              "is_click",
+              "is_comment",
+              "is_follow",
+              "is_forward",
+              "is_hate",
+              "is_like",
+              "is_profile_enter",
+              "long_view",
+              "play_time_ms",
+              "tab",
+              "time_ms",
+              "user",
+              "user_raw",
+              "video"
+            ]
+          }
+        },
+        "dataset": "KuaiRand-Pure"
+      },
+      "config_sha": "81de49d8b7af7421",
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "code": {
+        "agent/final_ensemble.py": "0db692259dd8aa0e",
+        "agent/ensemble.py": "ee3e8e4433c4ae07",
+        "agent/executor.py": "b10352b5d179fdec",
+        "runtime/train_lib.py": "2434c951f90e1890"
+      },
+      "evaluation": "starter-kit evaluate.py on validation only",
+      "dataset_scope": "KuaiRand-Pure only",
+      "aggregation": "rank_normalise_then_mean",
+      "members_dir": "logs/final_ensemble",
+      "source_node": 4,
+      "agent_produced": true,
+      "rebuild_invocation": "python3 -m agent.final_ensemble"
+    },
+    "reproduce": "python3 -m agent.final_ensemble --seeds 16",
+    "artifacts": {
+      "record": "logs/ensemble_results.json",
+      "members_dir": "logs/final_ensemble"
+    },
+    "split": "validation",
+    "verified": true,
+    "how_produced": {
+      "steps": [
+        "one configuration was selected (see `config`)",
+        "16 independent seeds were trained, all of them kept -- no member was chosen on validation",
+        "each member's valid predictions were rank-normalised",
+        "the normalised predictions were averaged",
+        "the average was scored with the starter-kit evaluator"
+      ],
+      "member_paths": [
+        "logs/final_ensemble/seed_00",
+        "logs/final_ensemble/seed_00.py",
+        "logs/final_ensemble/seed_01",
+        "logs/final_ensemble/seed_01.py",
+        "logs/final_ensemble/seed_02",
+        "logs/final_ensemble/seed_02.py",
+        "logs/final_ensemble/seed_03",
+        "logs/final_ensemble/seed_03.py",
+        "logs/final_ensemble/seed_04",
+        "logs/final_ensemble/seed_04.py",
+        "logs/final_ensemble/seed_05",
+        "logs/final_ensemble/seed_05.py",
+        "logs/final_ensemble/seed_06",
+        "logs/final_ensemble/seed_06.py",
+        "logs/final_ensemble/seed_07",
+        "logs/final_ensemble/seed_07.py",
+        "logs/final_ensemble/seed_08",
+        "logs/final_ensemble/seed_08.py",
+        "logs/final_ensemble/seed_09",
+        "logs/final_ensemble/seed_09.py",
+        "logs/final_ensemble/seed_10",
+        "logs/final_ensemble/seed_10.py",
+        "logs/final_ensemble/seed_11",
+        "logs/final_ensemble/seed_11.py",
+        "logs/final_ensemble/seed_12",
+        "logs/final_ensemble/seed_12.py",
+        "logs/final_ensemble/seed_13",
+        "logs/final_ensemble/seed_13.py",
+        "logs/final_ensemble/seed_14",
+        "logs/final_ensemble/seed_14.py",
+        "logs/final_ensemble/seed_15",
+        "logs/final_ensemble/seed_15.py"
+      ],
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "originally_built_by": "autonomous competition run (`AgentLoop` ensemble action)",
+      "agent_produced": true,
+      "agent_can_reproduce": true,
+      "agent_reproduction_evidence": "logs/opus_research/agent_reproduced_incumbent.jsonl -- a --fresh run reached the identical configuration and produced 0.60541 via its own ensemble action"
+    },
+    "recomputed": {
+      "primary": 0.60541,
+      "GAUC": 0.67212,
+      "nDCG@5": 0.5387
+    },
+    "verify_issues": [],
+    "delta_vs_baseline": 0.00381,
+    "sigma_vs_baseline": 4.76
+  },
+  "convergence": {
+    "official": {
+      "rule": "epsilon=0.002, N=3",
+      "source": "competition brief",
+      "scored_iterations": 5,
+      "converged": true,
+      "converged_at_node": 8,
+      "gain_over_window": 0.000442,
+      "best_primary": 0.60541
+    },
+    "internal": {
+      "rule": "epsilon=0.00048, N=3",
+      "source": "internal research controller (NOT the organizer rule)",
+      "scored_iterations": 5,
+      "converged": true,
+      "converged_at_node": 8,
+      "gain_over_window": 0.000442,
+      "best_primary": 0.60541,
+      "epsilon_sigma": 0.6,
+      "rationale": "calibrated to the upward drift a running maximum shows by luck over N iterations. Stricter than the organizer rule, so it extends the SEARCH -- but anything it finds after the official stopping point is research evidence, not an eligible scored checkpoint."
+    },
+    "caps": {
+      "iterations": 50,
+      "wall_clock_hours": 6.0
+    },
+    "eligible_checkpoint": {
+      "determined": true,
+      "converged_at_node": 8,
+      "eligible_node": 4,
+      "eligible_primary": 0.60541,
+      "better_but_ineligible": [],
+      "note": "anything in better_but_ineligible was produced AFTER the official stopping point and cannot be the scored submission for this journal"
+    },
+    "note": "The organizer rule is the official definition of convergence AND of which checkpoint is scored: the validation-best checkpoint at the point it fires. The internal controller is stricter, so the loop keeps searching past that point -- which is useful for research and does NOT make a later artifact eligible. Check official.converged_at_node before treating any result as the submission."
+  },
+  "latest_run": {
+    "available": true,
+    "journal": "logs/journal.jsonl",
+    "run_profile": "competition",
+    "outer_iterations": 9,
+    "iterations_charged": 9,
+    "training_runs_spent": 27,
+    "training_runs_cap": 90,
+    "fresh_executions": 27,
+    "reused_artifacts": 6,
+    "duplicate_reuse_attempts": 0,
+    "unique_observations": 25,
+    "unique_observations_source": "ledger",
+    "fresh_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "reused_seeds": [
+      0,
+      1,
+      2
+    ],
+    "execution_events": {
+      "fresh_execution": 13,
+      "reused_artifact": 6,
+      "duplicate_reuse": 3,
+      "failed_execution": 0,
+      "repaired_execution": 0,
+      "manual_execution": 0
+    },
+    "confirmations_run": 2,
+    "candidates_rejected": 0,
+    "promotions": 1,
+    "failures": 3,
+    "preflight_rejections": 1,
+    "automatic_recoveries": 0,
+    "manual_interventions": 0,
+    "runtime_training_s": 1691.3,
+    "runtime_agent_s": 2567.3,
+    "llm_tokens": {
+      "input_tokens": 186865,
+      "output_tokens": 16737,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    },
+    "llm_tokens_total": 203602,
+    "llm_tokens_source": "provider run summary",
+    "llm_calls": 17,
+    "llm_provider": "openai",
+    "llm_model": "gpt-5.4",
+    "llm_tokens_node_owned": 115099,
+    "llm_spend_usd": 0.718218,
+    "gpu_hours": 0.0,
+    "devices": [
+      "cpu"
+    ],
+    "stop_reason": "converged: running-best valid primary improved only 0.00044 (<= epsilon=0.00200, organizer rule) over the last 3 scored iterations",
+    "best_single_seed": {
+      "primary": 0.60497,
+      "evidence": "PRELIMINARY",
+      "note": "one draw; cannot change the submission. Excludes the ensemble node, which is not a single seed."
+    },
+    "best_ensemble": {
+      "primary": 0.60541,
+      "evidence": "CONFIRMED",
+      "note": "agent-run ensemble of one configuration"
+    }
+  },
+  "tests": {
+    "executed": false,
+    "note": "pass --run-tests for a live count"
+  },
+  "submission_artifacts": {
+    "valid": {
+      "available": true,
+      "path": "submission_valid.csv",
+      "sha256": "acfbedac210f528aa7df2c6e53d01dab7eee7d7036b239dfaf1aa0ffaa7506c3",
+      "data_rows": 124909,
+      "generation_command": "python3 -m agent.make_submission --split valid --ensemble --score"
+    },
+    "test": {
+      "available": true,
+      "path": "submission_test.csv",
+      "sha256": "e362441e389419907c0cbdeec64ecaabc9dcd67115f21471cac5b74b612e2c4c",
+      "data_rows": 170588,
+      "generation_command": "python3 -m agent.make_submission --split test --ensemble"
+    }
+  },
+  "robustness": {
+    "fault_suite": {
+      "available": true,
+      "faults_injected": 20,
+      "detection_rate": 1.0,
+      "recovery_rate": 1.0,
+      "automatic_repairs": 9,
+      "automatic_skips": 6,
+      "automatic_pivots": 3,
+      "clean_terminations": 2,
+      "failed_retries": 0,
+      "manual_interventions": 0,
+      "invalid_candidate_promoted": false,
+      "command": "python3 -m agent.faults --live"
+    },
+    "live_injected_failure_run": {
+      "available": true,
+      "injected_at_iteration": 1,
+      "nodes": 4,
+      "stop_reason": "iteration cap reached (4)",
+      "runtime_s": 314.2,
+      "ledger": {
+        "max_iterations": 4,
+        "max_training_runs": 4,
+        "training_runs_used": 2,
+        "training_runs_left": 2,
+        "training_crashes": 1,
+        "reused_artifacts": 0,
+        "duplicate_reuse_attempts": 0,
+        "unique_observations": 1,
+        "note": "training_runs_used is FRESH COMPUTE. reused_artifacts are previously completed members: real historical evidence, no compute, excluded from the budget. unique_observations is what evidence may rest on; crashes and duplicates add neither."
+      },
+      "manual_interventions": 0,
+      "artifacts": "results/live_fault_run/",
+      "command": "python3 run_agent.py --fresh --max-iterations 4 --inject-error-at 1 --max-training-runs 4",
+      "what_happened": {
+        "injected_fault_detected": true,
+        "compute_spent_before_it_crashed_s": 143,
+        "agent_response": "debug",
+        "agent_reason": "last attempt (node 1) errored; debug chain length 0 < 2, feeding the error trace back to fix it",
+        "unplanned_faults": 2,
+        "unplanned_fault_note": "the network dropped mid-run and two LLM calls failed. Nothing about this was staged; both were journalled, the agent correctly declined to debug a node that had produced no code, and the run continued to its cap."
+      }
+    },
+    "closed_loop_recovery": {
+      "available": true,
+      "evaluation_mode": "real AgentLoop and executor; deterministic scripted LLM",
+      "competition_evidence": false,
+      "hidden_labels_available": false,
+      "recovered": 3,
+      "total": 3,
+      "all_passed": true,
+      "manual_interventions": 0,
+      "scenarios": [
+        {
+          "name": "runtime_error",
+          "injected_failure_class": "runtime_error",
+          "first_status": "error",
+          "recovery_action": "debug",
+          "later_success": true,
+          "later_primary": 0.6014769439448429,
+          "training_runs_spent": 2,
+          "crashed_runs": 1,
+          "unique_observations": 1,
+          "manual_interventions": 0,
+          "recovered": true,
+          "elapsed_s": 20.89,
+          "nodes": [
+            {
+              "iteration_id": 0,
+              "parent_id": null,
+              "action": "draft",
+              "status": "error",
+              "primary": null,
+              "wall_clock_seconds": 0.026,
+              "error_head": "exit code 1",
+              "decide_reason": "only 0 attempts exist (< draft_count=1); drafting a fresh combination, prioritizing untried high-priority axes"
+            },
+            {
+              "iteration_id": 1,
+              "parent_id": 0,
+              "action": "debug",
+              "status": "success",
+              "primary": 0.6014769439448429,
+              "wall_clock_seconds": 20.097,
+              "error_head": "",
+              "decide_reason": "last attempt (node 0) errored; debug chain length 0 < 2, feeding the error trace back to fix it"
+            }
+          ]
+        },
+        {
+          "name": "malformed_artifact",
+          "injected_failure_class": "invalid_predictions",
+          "first_status": "error",
+          "recovery_action": "debug",
+          "later_success": true,
+          "later_primary": 0.6014769439448429,
+          "training_runs_spent": 2,
+          "crashed_runs": 1,
+          "unique_observations": 1,
+          "manual_interventions": 0,
+          "recovered": true,
+          "elapsed_s": 19.51,
+          "nodes": [
+            {
+              "iteration_id": 0,
+              "parent_id": null,
+              "action": "draft",
+              "status": "error",
+              "primary": null,
+              "wall_clock_seconds": 0.121,
+              "error_head": "script exited 0 but violated the output contract:",
+              "decide_reason": "only 0 attempts exist (< draft_count=1); drafting a fresh combination, prioritizing untried high-priority axes"
+            },
+            {
+              "iteration_id": 1,
+              "parent_id": 0,
+              "action": "debug",
+              "status": "success",
+              "primary": 0.6014769439448429,
+              "wall_clock_seconds": 18.95,
+              "error_head": "",
+              "decide_reason": "last attempt (node 0) errored; debug chain length 0 < 2, feeding the error trace back to fix it"
+            }
+          ]
+        },
+        {
+          "name": "timeout_reroute",
+          "injected_failure_class": "timeout",
+          "first_status": "error",
+          "recovery_action": "draft",
+          "later_success": true,
+          "later_primary": 0.6014769439448429,
+          "training_runs_spent": 2,
+          "crashed_runs": 1,
+          "unique_observations": 1,
+          "manual_interventions": 0,
+          "recovered": true,
+          "elapsed_s": 20.58,
+          "nodes": [
+            {
+              "iteration_id": 0,
+              "parent_id": null,
+              "action": "draft",
+              "status": "error",
+              "primary": null,
+              "wall_clock_seconds": 1.005,
+              "error_head": "TIMEOUT: training run exceeded 1s and was killed.",
+              "decide_reason": "only 0 attempts exist (< draft_count=1); drafting a fresh combination, prioritizing untried high-priority axes"
+            },
+            {
+              "iteration_id": 1,
+              "parent_id": null,
+              "action": "draft",
+              "status": "success",
+              "primary": 0.6014769439448429,
+              "wall_clock_seconds": 19.047,
+              "error_head": "",
+              "decide_reason": "pivoting away from node 0: timeout requires a materially cheaper experiment, not an unchanged debug retry"
+            }
+          ]
+        }
+      ],
+      "artifacts": "results/recovery_eval.json",
+      "command": "python3 -m agent.recovery_eval"
+    }
+  },
+  "epoch_sensitivity": {
+    "schema": "epoch_sensitivity/1",
+    "source": "logs/opus_research/epoch_primaries.json",
+    "split": "validation only",
+    "seeds": 3,
+    "noise_floor": 0.0008,
+    "peaks": [
+      {
+        "seed": 0,
+        "peak_epoch": 14,
+        "peak_primary": 0.6049679520554694,
+        "local_window_spread": 0.0013168158058636248,
+        "local_window_sigma": 1.646019757329531
+      },
+      {
+        "seed": 1,
+        "peak_epoch": 10,
+        "peak_primary": 0.6039293203486753,
+        "local_window_spread": 0.0009063592595695003,
+        "local_window_sigma": 1.1329490744618753
+      },
+      {
+        "seed": 2,
+        "peak_epoch": 13,
+        "peak_primary": 0.604491078544492,
+        "local_window_spread": 0.0009267072685467115,
+        "local_window_sigma": 1.1583840856833894
+      }
+    ],
+    "peak_epoch_range": [
+      10,
+      14
+    ],
+    "peak_primary_std": 0.00042449138695582425,
+    "mean_local_window_spread": 0.001049960777993279,
+    "mean_local_window_sigma": 1.3124509724915985,
+    "stopping_is_materially_seed_sensitive": true,
+    "decision": "do_not_promote_rolling_origin",
+    "reason": "The captures show stopping sensitivity, but contain validation predictions only. Choosing a rule from them now would tune on the official validation split, and no matching per-epoch test artifact exists. Keep the verified fixed ensemble unchanged. A future rolling-origin experiment must be preregistered and selected entirely inside train dates before official validation is read."
+  },
+  "path_b": {
+    "features_probed": 8,
+    "probe_statuses": {
+      "REJECTED": 6,
+      "PROBED": 2
+    },
+    "features_stored_with_lineage": 0,
+    "features_trained_paired": 0,
+    "end_to_end_complete": false,
+    "tier": "OBSERVED",
+    "note": "end-to-end means a proposed feature cleared the probe AND was retrained from its stored source in a paired experiment"
+  },
+  "hidden_test": {
+    "evaluated": true,
+    "lock_present": true,
+    "policy": "exactly one evaluation, at final submission only",
+    "command": "python3 -m agent.make_submission --final-test-eval --ensemble",
+    "result": {
+      "test": {
+        "GAUC": 0.6650986284593119,
+        "nDCG@5": 0.531100655425979,
+        "primary": 0.5980996419426454
+      },
+      "baseline_test": {
+        "GAUC": 0.661,
+        "nDCG@5": 0.5282,
+        "primary": 0.5946
+      },
+      "delta_test": {
+        "GAUC": 0.0041,
+        "nDCG@5": 0.0029,
+        "primary": 0.0035
+      },
+      "delta_primary_in_baseline_sigmas": 4.37,
+      "validation_for_comparison": {
+        "GAUC": 0.67212,
+        "nDCG@5": 0.5387,
+        "primary": 0.60541
+      },
+      "source": "results/final_results.json"
+    }
+  },
+  "distinctions": {
+    "validation_vs_hidden_test": "Every score in this manifest is VALIDATION unless a field says hidden_test. The hidden test has been evaluated exactly once; its result is in hidden_test.result.",
+    "single_seed_vs_ensemble": "A single-seed score is one draw and is PRELIMINARY. The submitted number is an ensemble of all seeds trained for one configuration.",
+    "agent_vs_human": "The canonical artifact was produced by the autonomous competition run and stamped from its ensemble action.",
+    "fresh_vs_reuse": "fresh_executions is compute actually spent. reused_artifacts are previously completed ensemble members on disk: real historical evidence, but free. unique_observations is what evidence may rest on, keyed by (configuration, seed), so reusing the same member twice adds nothing. There is no general execution cache in this repository.",
+    "preliminary_vs_confirmed": "Only CONFIRMED evidence may change the submission. A single seed is PRELIMINARY at any effect size."
+  },
+  "reproduce": {
+    "tests": "python3 tests/test_harness.py",
+    "verify_incumbent": "python3 -m agent.verify_incumbent",
+    "rebuild_ensemble": "python3 -m agent.final_ensemble --seeds 16",
+    "regenerate_manifest": "python3 -m agent.manifest --run-tests",
+    "regenerate_report": "python3 -m agent.results_report --run-tests",
+    "valid_submission": "python3 -m agent.make_submission --split valid --score --ensemble",
+    "dashboard": "streamlit run app.py",
+    "agent_run": "python3 run_agent.py --competition --fresh"
+  }
+}

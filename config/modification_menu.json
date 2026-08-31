@@ -1,0 +1,297 @@
+{
+  "version": 1,
+  "source": "Authored from kuairand-starter-kit/README.md '\u4ece\u54ea\u91cc\u5f00\u59cb\u6539' (tested dead-ends + ranked unexplored directions) and the challenge problem statement.",
+  "axes": {
+    "loss": {
+      "priority": 1,
+      "description": "Training objective. Baseline is pointwise logloss but the metrics (GAUC/nDCG@5) are within-user ranking metrics \u2014 organizers rank aligning the loss with the metric as the single most promising unexplored direction.",
+      "options": {
+        "pointwise_logloss": {
+          "description": "Baseline: per-impression binary cross-entropy on long_view."
+        },
+        "bpr_pairwise": {
+          "description": "BPR: sample (positive, negative) impression pairs within the same user, maximize P(s_pos > s_neg)."
+        },
+        "listwise_softmax": {
+          "description": "Per-user softmax over that user's train impressions, cross-entropy toward the positives (ListNet-style)."
+        },
+        "listwise_softmax_plus_pointwise": {
+          "description": "Weighted hybrid: listwise softmax + pointwise logloss. Keeps calibrated head while aligning with ranking."
+        },
+        "lambdarank_ndcg": {
+          "description": "LambdaRank: the same within-user (positive, negative) pairs as bpr_pairwise, but each pair is weighted by |delta nDCG@5| \u2014 how much swapping those two items would actually change that user's nDCG@5 \u2014 instead of BPR's uniform weight of 1.0. Motivation: BPR treats a swap at ranks 1<->2 as worth exactly as much as one at 50<->51, but nDCG@5 does not; it applies a log2(rank+2) discount and ignores everything past rank 5 entirely. This concentrates gradient on the top of each user's list, which is the only part the metric reads. Measured on this dataset: 36.3% of validation users have >5 impressions (holding 69.9% of all rows) and 31.9% have both >5 impressions and >=1 positive \u2014 that subset is where the weighting diverges most sharply from BPR, though the discount reweights ordering for every user with a (pos, neg) pair. Refs: Burges et al., 'Learning to Rank with Nonsmooth Cost Functions' (NIPS 2006); Burges, 'From RankNet to LambdaRank to LambdaMART' (2010); Wang et al., 'The LambdaLoss Framework for Ranking Metric Optimization' (CIKM 2018), which shows this optimizes a bound on nDCG. The |delta nDCG| computation is verified pair-by-pair against the official evaluate.py, and with the weight forced to 1.0 it reproduces bpr_pairwise exactly.",
+          "requires": {
+            "model": [
+              "fm_numpy"
+            ]
+          }
+        }
+      }
+    },
+    "neg_sampling": {
+      "priority": 4,
+      "description": "How NEGATIVE impressions are sampled for pairwise training. This is separable from the loss SHAPE \u2014 BPR's objective and BPR's sampler are independent choices, and only the objective has ever been varied on this project. Measured on this dataset: each train user averages 14.7 positives and 28.9 negatives, but the default samples exactly ONE negative per positive per epoch, touching ~1/29 of the available negatives. Rendle & Freudenthaler (WSDM 2014) argue explicitly that uniform sampling \u2014 not the objective \u2014 is the weak point of BPR-style training. Extra relevance here: the measured cause of the lambdarank_ndcg failure was too little effective gradient signal, which points at the sampler rather than the loss. Only applies to pairwise losses.",
+      "options": {
+        "uniform_1": {
+          "description": "Baseline / current behaviour: one uniformly-random in-user negative per positive per epoch (Rendle et al., BPR, UAI 2009)."
+        },
+        "uniform_2": {
+          "description": "Two uniform negatives per positive per epoch \u2014 2x the pair signal at ~2x epoch cost.",
+          "requires": {
+            "loss": [
+              "bpr_pairwise",
+              "lambdarank_ndcg",
+              "lambdarank_ndcg_fulllist"
+            ]
+          }
+        },
+        "uniform_4": {
+          "description": "Four uniform negatives per positive per epoch \u2014 4x the pair signal at ~4x epoch cost. Watch the runtime budget.",
+          "requires": {
+            "loss": [
+              "bpr_pairwise",
+              "lambdarank_ndcg",
+              "lambdarank_ndcg_fulllist"
+            ]
+          }
+        },
+        "popularity_biased": {
+          "description": "Sample in-user negatives with probability proportional to the item's train-split impression count. Rationale specific to logged-impression data: a POPULAR video the user was shown and did not long-view is a more informative negative than an obscure one, because the impression was genuinely served and declined rather than merely absent.",
+          "requires": {
+            "loss": [
+              "bpr_pairwise",
+              "lambdarank_ndcg",
+              "lambdarank_ndcg_fulllist"
+            ]
+          }
+        },
+        "hard_negatives": {
+          "description": "Dynamic negative sampling: draw from the 8 in-user negatives the CURRENT model scores highest, i.e. the ones it is actively most wrong about (Zhang et al., 'Optimizing Top-N Collaborative Filtering via Dynamic Negative Item Sampling', SIGIR 2013). Costs one extra scoring pass per epoch.",
+          "requires": {
+            "loss": [
+              "bpr_pairwise",
+              "lambdarank_ndcg",
+              "lambdarank_ndcg_fulllist"
+            ]
+          }
+        }
+      }
+    },
+    "user_history": {
+      "priority": 2,
+      "description": "Behavior-sequence features. Baseline uses zero history; each user has hundreds of train interactions. Second-ranked unexplored direction (DIN/SIM family). NOTE: purely user-side features only work through interaction with item-side features \u2014 first-order user terms are constant within a user and cannot change within-user ranking.",
+      "options": {
+        "none": {
+          "description": "Baseline: no history."
+        },
+        "mean_pool_positives": {
+          "description": "Mean-pool embeddings of the user's past positive (long_view) items from the train period as an extra field that interacts with the candidate item."
+        },
+        "recency_weighted_pool": {
+          "description": "Like mean_pool_positives but exponentially decayed toward recent interactions."
+        },
+        "din_attention": {
+          "description": "DIN-style attention: weight history items by similarity to the candidate item before pooling. Needs an MLP-based model to consume the pooled vector.",
+          "requires": {
+            "model": [
+              "deepfm_mlp",
+              "dcn_lite"
+            ]
+          }
+        }
+      }
+    },
+    "multitask": {
+      "priority": 5,
+      "description": "Multi-feedback auxiliary tasks. Log has is_click, is_like, is_follow, is_comment, is_forward, play_time_ms on EVERY impression (no sample-selection bias for long_view). Third-ranked direction.",
+      "options": {
+        "none": {
+          "description": "Single task: long_view only."
+        },
+        "aux_click": {
+          "description": "Shared embeddings, auxiliary head on is_click, weighted joint loss."
+        },
+        "aux_click_like_forward": {
+          "description": "Auxiliary heads on is_click, is_like, is_forward."
+        },
+        "censored_watch_time": {
+          "description": "CWM-inspired: auxiliary censored-regression head on play_time (a completed play truncates true watch time, so use a one-sided loss). Fourth-ranked direction.",
+          "requires": {
+            "loss": [
+              "pointwise_logloss",
+              "listwise_softmax_plus_pointwise"
+            ]
+          }
+        },
+        "aux_click_like_forward_watch": {
+          "description": "Adds a GRADED play-time head (CWM-style censored regression on play_time/duration) alongside the binary click/like/forward heads, keeping long_view as the primary target. This is the only form in which a graded play-time signal is compatible with a pairwise primary loss: replacing the primary target with a graded one would require either grade-weighted pairs (structurally identical to lambdarank_ndcg, MEASURED HERE at -13.7 sigma) or pointwise regression (measured worse than BPR). The ratio is CLEANED before use, for measured reasons: the maximum observed play_time/duration is 617842x, and rows with ratio > 5 (1.85% of train) have a long_view rate of only 13.7% versus 100% at ratio 1-5 -- that tail is broken instrumentation, not engagement, and the binary long_view threshold already rejects it, so the graded target zeroes it and clips the rest at 2.0. Within the retained band the signal is genuinely monotone (long_view rate 50% -> 68% -> 83% -> 100% across ratio 0.2 -> 1.0). NOTE the confound: median ratio varies 1.02 -> 0.05 across video-duration buckets while the long_view rate stays roughly flat at 27-36%, so the raw ratio is not comparable across items -- this is why it is used as an auxiliary head (which the shared embeddings can calibrate) rather than as a target. Refs: CWM (KDD 2024) for censored watch-time regression; ESMM (SIGIR 2018) for multi-signal auxiliary heads over a shared representation.",
+          "requires": {
+            "loss": [
+              "bpr_pairwise",
+              "pointwise_logloss",
+              "listwise_softmax",
+              "listwise_softmax_plus_pointwise"
+            ]
+          }
+        },
+        "aux_social4": {
+          "description": "OUTSIDE-THE-ORIGINAL-MENU probe. Four binary auxiliary heads on feedback signals the cache never read: is_follow, is_comment, is_hate, is_profile_enter. Used ONLY as supervision targets sharing the FM embeddings -- never as features (they are outcomes of the impression, so as inputs they would be target leakage; they are in data_boundary.TEST_LABEL_COLUMNS). Train prevalence and long_view association: is_profile_enter 2.539%/0.764, is_comment 0.257%/0.886, is_follow 0.101%/0.708, is_hate 0.042%/0.246 against a 0.337 base rate. is_hate is the only NEGATIVELY associated signal available, which is why it is included despite being rare. Auxiliary weight is the existing default 0.2, NOT tuned."
+        }
+      }
+    },
+    "model": {
+      "priority": 6,
+      "description": "Scoring model / architecture. IMPORTANT \u2014 do not confuse two different claims: what was actually measured is that raising FM *capacity* (embedding dim k=8/16/32) does not help. Swapping the *architecture* (DeepFM, DCN, DIN-style attention) has NEVER been tested, by the organizers or by this agent \u2014 every accepted node so far has used fm_numpy. A cross layer or an attention head is a different function class, not more parameters, so the capacity result does not carry over to it. This axis is OPEN and unexplored; treat it as a live hypothesis, not a documented dead end. Torch 2.3 (CPU) is available.",
+      "options": {
+        "fm_numpy": {
+          "description": "Baseline: numpy Factorization Machine."
+        },
+        "deepfm_mlp": {
+          "description": "DeepFM: FM interaction + MLP over concatenated field embeddings (torch, CPU)."
+        },
+        "dcn_lite": {
+          "description": "Small Deep & Cross network (torch, CPU)."
+        },
+        "gru4rec_seq": {
+          "description": "GRU4Rec-style SEQUENTIAL model: the FM backbone plus a GRU run over the user's chronologically-ordered train-period long_view history, scored as <gru_state, candidate_video_embedding> ADDED to the FM score (additive, not a replacement). This is the one category of intervention the dataset's own design implies and that nothing on this project has tried: FM/DeepFM/DCN treat a user's history as a SET, and DIN attends over it but is order-invariant -- none of them use ORDER. KuaiRand is published as 'An Unbiased Sequential Recommendation Dataset' (Gao et al., CIKM 2022). A GRU (Hidasi et al., 'Session-based Recommendations with Recurrent Neural Networks', ICLR 2016) is used rather than a causal Transformer (Kang & McAuley, 'Self-Attentive Sequential Recommendation', SASRec, ICDM 2018) because a GRU needs no positional embeddings and no causal attention mask -- the two classic sources of silent look-ahead leakage -- and on this project the measured torch failure rate for generated code was 4 of 8 iterations versus 0 of 8 for numpy FM, so a smaller correctness surface is worth more than SASRec's marginal capacity. LEAKAGE DISCIPLINE: sequences are built from train-split positives only; a TRAIN row is masked to strictly earlier interactions (without this a positive row appears in its own history, leaking its label), while valid/test rows may use the full train history because the split is defined by DATE and train strictly precedes both. A raw time_ms comparison is deliberately NOT used across splits, because date and time_ms are ~1h skewed (0.04% of valid rows carry a time_ms below the train maximum). Window length 50 covers p90 of train users (mean 43.5, median 31 impressions). Sequence construction reads only train.npz, which the sandbox leaves intact -- no test label is ever required.",
+          "requires": {
+            "user_history": [
+              "none"
+            ]
+          }
+        }
+      }
+    },
+    "temporal": {
+      "priority": 7,
+      "description": "Time features and train\u2192eval distribution shift (hourmin, date). Sixth-ranked direction. Remember: a time feature only matters through interaction with item-side features.",
+      "options": {
+        "none": {
+          "description": "Baseline: no time features."
+        },
+        "hour_bucket": {
+          "description": "Hour-of-day bucket from hourmin as an extra categorical field."
+        },
+        "hour_plus_dow": {
+          "description": "Hour bucket plus day-of-week from date."
+        }
+      }
+    },
+    "training": {
+      "priority": 8,
+      "description": "Optimization schedule. Measured: raising embedding dim k=8/16/32 barely moves the score, so prefer schedule changes that serve the loss/architecture axes over raw embedding width. (This is a statement about embedding CAPACITY only \u2014 it says nothing about architecture choice, which is a separate, untested axis.)",
+      "options": {
+        "default": {
+          "description": "Baseline: k=16, lr=1e-3, batch 8192, max 40 epochs, patience 4."
+        },
+        "k32": {
+          "description": "k=32 (tested ~neutral; only useful combined with new signal sources)."
+        },
+        "lower_lr_longer": {
+          "description": "lr=5e-4, more epochs, patience 6."
+        },
+        "two_stage_finetune": {
+          "description": "Stage 1 pointwise warmup, stage 2 fine-tune with the selected ranking loss at lower lr."
+        }
+      }
+    },
+    "data_extras": {
+      "priority": 10,
+      "description": "Extra data sources beyond the two standard logs. Leakage-sensitive: locked options are mechanically unselectable without a human-set override flag.",
+      "options": {
+        "none": {
+          "description": "Standard logs only."
+        },
+        "video_stats_features": {
+          "description": "video_features_statistic_pure.csv aggregate counters (show_cnt, play_cnt, ...). LOCKED: statistics are aggregated over a window that overlaps the validation/test dates \u2014 using them as features risks target leakage from the evaluation period.",
+          "locked": true
+        },
+        "random_log_test_period": {
+          "description": "Rows of log_random_4_22_to_5_08_pure.csv with date in the test window (20220429\u201320220508). LOCKED: direct test-period exposure.",
+          "locked": true
+        },
+        "random_log_valid_unbiased_check": {
+          "description": "Rows of the random-exposure log restricted to the VALIDATION window (20220422\u201320220428), used as an extra unbiased evaluation diagnostic only \u2014 never as training data. Allowed (organizers suggest it)."
+        }
+      }
+    },
+    "sample_weighting": {
+      "priority": 3,
+      "description": "How much each training example contributes to the gradient. The metric aggregates PER USER -- nDCG@5 averages every user equally, and GAUC weights users by positive count -- but training averages PER ROW, so users with more impressions dominate the objective in a way the metric never rewards. Measured on this train split: rows/user has median 31 but max 809, and the top 10% of users supply 33.3% of all training rows (top 25% supply 59.2%). This is the same class of train/eval aggregation mismatch that was measured to sink lambdarank_ndcg (training lists average 43.5 impressions/user vs 5.6 in evaluation). Weights are renormalised to mean 1.0, so this is a pure reweighting and not a hidden learning-rate change. Refs: standard importance weighting for mismatched train/eval aggregation; the per-user aggregation is defined by the organizers' own evaluate.py. CAVEAT recorded honestly: epoch_listwise already normalises per user (it divides by the number of user-groups) and listwise lost to BPR here (0.5986 vs 0.6032) -- but listwise differs from BPR in many other ways, so per-user weighting applied to BPR specifically is genuinely untested.",
+      "options": {
+        "per_row": {
+          "description": "Baseline / current behaviour: every training row (or pair) contributes equally, so heavy users dominate proportionally to their impression count."
+        },
+        "per_user_inv": {
+          "description": "Weight each pair by 1/n_u where n_u is that user's number of training pairs, making every USER contribute equally to the gradient -- matching how nDCG@5 averages users. Strongest correction; may over-weight very light users.",
+          "requires": {
+            "loss": [
+              "bpr_pairwise",
+              "lambdarank_ndcg"
+            ]
+          }
+        },
+        "per_user_sqrt": {
+          "description": "Weight each pair by 1/sqrt(n_u): a partial correction that reduces heavy-user dominance without fully discarding the extra evidence a high-activity user genuinely provides. Usually the safer of the two.",
+          "requires": {
+            "loss": [
+              "bpr_pairwise",
+              "lambdarank_ndcg"
+            ]
+          }
+        }
+      }
+    },
+    "regularization": {
+      "priority": 9,
+      "description": "Explicit L2 penalty on the FM embeddings and linear weights. Currently hardcoded at l2=1e-6, which is effectively off. IMPORTANT -- regularization is NOT capacity: the organizers measured that raising embedding dim k=8/16/32 does not help, but that is a statement about model WIDTH, not about penalising the weights of a fixed-width model. Extending the capacity result to regularization would repeat exactly the capacity-vs-architecture conflation that was already found and corrected in this menu. Dataset-specific reason to expect it matters: only 1.62% of validation (user, video) pairs also occur in train, so the model must generalise to essentially unseen crosses, yet it fits ~27k user x 7.6k video embeddings on 1.14M rows with the penalty switched off. Refs: Rendle, 'Factorization Machines' (ICDM 2010) on FM regularization; Rendle et al., BPR (UAI 2009), which regularizes each embedding group separately.",
+      "options": {
+        "l2_default": {
+          "description": "Baseline: l2=1e-6 (effectively unregularized)."
+        },
+        "l2_1e5": {
+          "description": "l2=1e-5, a 10x increase over baseline."
+        },
+        "l2_1e4": {
+          "description": "l2=1e-4, a 100x increase -- the usual sweet spot for FM on sparse implicit-feedback data."
+        },
+        "l2_1e3": {
+          "description": "l2=1e-3, a 1000x increase; expect underfitting if the model is not actually overfitting."
+        }
+      }
+    }
+  },
+  "notes": {
+    "tested_dead_ends": [
+      "Adding static features (all 13 CWM fields + user-side coarse buckets): primary 0.5940 vs 0.5950 \u2014 no gain.",
+      "Raising FM embedding dim k=8/16/32: 0.5895/0.5902/0.5887 \u2014 no gain. NOTE: this is about embedding CAPACITY only. It is NOT evidence against changing the model architecture (DeepFM/DCN/DIN), which is a different function class and has never been measured.",
+      "Pure user-side first-order terms contribute exactly 0 to within-user ranking.",
+      "LambdaRank (|delta nDCG@5| pair weighting, loss=lambdarank_ndcg): MEASURED HERE, decisively worse than bpr_pairwise. 5 paired seeds, identical config: 0.5927 vs BPR's 0.6037 (paired t=-20.4). Root cause measured: the TRAIN split averages 43.5 impressions/user (median 31) while the EVAL split averages 5.6 (median 4) -- 7.8x longer lists -- so an @5 truncation zeroes 78.6% of training pairs and cuts effective gradient magnitude to 0.042x BPR's, causing severe underfitting. Removing the truncation (lambdarank_ndcg_fulllist) recovers only +0.0043 and is still 0.5970 (paired t=-15.5 vs BPR, and 5.8 sigma BELOW the official 0.6016 baseline). It lost on nDCG@5 itself (0.5305 vs 0.5375), not just GAUC, so this is not a metric tradeoff -- uniform pair weighting is simply better conditioned on this data. Do NOT propose position-discounted pairwise losses again.",
+      "Model ARCHITECTURE swaps (DeepFM / DCN / DIN-attention): MEASURED HERE, statistically tied with numpy FM. Best neural 5-seed mean 0.60377 +/- 0.00030 vs FM's 0.60366 +/- 0.00027 (t=+0.57, difference is 1/8 of the baseline's own seed noise). The torch path also crashed on 4 of 8 generated iterations vs 0 of 8 for FM. Architecture is not the bottleneck on this dataset.",
+      "Per-user gradient weighting (sample_weighting=per_user_sqrt / per_user_inv): MEASURED HERE, real harm, monotonic in strength -- per_user_sqrt 0.60264 and per_user_inv 0.59987 vs BPR's 0.60367 (3 paired seeds each). The metric aggregates per USER but the optimizer genuinely benefits from heavy users' extra impressions as evidence. Matching training aggregation to metric aggregation is intuitive and WRONG on this data.",
+      "L2 regularization sweep (regularization=l2_1e5 / l2_1e4): MEASURED HERE, true null -- 0.60380 and 0.60362 vs BPR's 0.60367, within +/-0.00013. The model is not overfitting in a way L2 addresses; valid items are densely supported (median valid video has 365 train impressions).",
+      "Snapshot/checkpoint ensembling (top-N epochs of one run): MEASURED HERE, rejected by its own guard. Valid peaks at epoch 4 then declines monotonically, so the top-N checkpoints are one peak plus strictly worse neighbours from the same trajectory -- averaging DILUTES. Real Snapshot Ensembles (Huang et al. ICLR 2017) needs cyclic LR restarts to make diverse comparably-good minima; constant-LR training cannot produce them. SCOPE AND CONFIDENCE: this was measured on ONE training configuration, and its stated premise -- that validation declines monotonically from an early peak -- is a property of that configuration's epoch curve, not of the method. Confidence is LOW for any configuration whose curve differs. Note also that the guard which produced this rejection compares a candidate against a checkpoint chosen on the SAME validation set. Re-measure before relying on this entry.",
+      "Bagged/bootstrap ensemble members: MEASURED HERE, loses to plain seed ensembling. Row-level Poisson bootstrap DID decorrelate members (mean pairwise rank-corr 0.900 vs seeds' 0.959) but cost -0.00279 in individual member quality (bagged members 0.60088, ranges not even overlapping seeds' 0.60323-0.60390). 5-bagged ensemble 0.60413 vs 5-seed 0.60497. Independence alone cannot buy out of a quality deficit.",
+      "Graded play-time target as an auxiliary head (multitask=aux_click_like_forward_watch): MEASURED HERE, perfect null -- 0.60366 vs BPR's 0.60367, paired t=-0.23 over 5 seeds. The graded ratio adds nothing beyond the binary long_view label plus click/like/forward. Note the ratio is also badly confounded (median ratio 1.02->0.05 across duration buckets while long_view stays flat 27-36%) and its tail is corrupted (max 617842x; ratio>5 has long_view rate 13.7%).",
+      "Negative-sampling variants (neg_sampling axis): MEASURED HERE, none beat the uniform_1 default. uniform_2 0.60356 and uniform_4 0.60316 vs uniform_1's 0.60367 over 5 paired seeds (paired t -0.67 and -1.96) -- more negatives per positive is neutral-to-slightly-negative, NOT an improvement. hard_negatives 0.57179 (t=-27.7) and popularity_biased 0.56676 (t=-118.7) are catastrophic. Do not re-propose any neg_sampling option; uniform_1 is already correct.",
+      "GENERAL PATTERN across all of the above: every intervention that CONCENTRATED or REWEIGHTED the training signal lost (LambdaRank position discount, hard negatives, popularity-biased negatives, per-user weighting), and every ensemble whose members were not BOTH independent AND comparably good lost (snapshots, bagging). Broad, uniform, unweighted signal keeps winning on this dataset. Weigh this pattern before proposing anything that narrows what the model trains on.",
+      "Listwise losses (loss=listwise_softmax / listwise_softmax_plus_pointwise): MEASURED HERE, both lose to bpr_pairwise -- 0.5986 and 0.5985 vs BPR's 0.6032 on matched drafts. Pairwise BPR is the correct loss on this dataset; the only unambiguously real jump in the whole project was pointwise -> BPR (+0.0046, ~5.75 sigma). Do not re-propose a listwise objective.",
+      "Exposure debiasing / IPS reweighting using log_random_4_22_to_5_08_pure.csv: RULED OUT ON ANALYSIS (no run spent). long_view rate is 8.50% under random exposure vs 33.66% under the logged policy, but EVALUATION IS ON THE LOGGED DISTRIBUTION (valid 31.33%), so train and eval are already distribution-matched and debiasing would optimise the wrong objective. The random log also exists only from 2022-04-22 onward -- the evaluation period -- so using it as training data is period leakage. The valid-window slice remains allowed as an unbiased DIAGNOSTIC only (data_extras=random_log_valid_unbiased_check).",
+      "ENSEMBLING gru4rec_seq with fm_numpy (this finding is about ensemble MEMBERSHIP only -- gru4rec_seq's standalone quality is a separate, still-open question): MEASURED HERE. Rank-correlation is genuinely low (0.9338 vs 0.983 for same-config seeds), but gru4rec is 2.1 sigma weaker (0.60345 vs 0.60511), and the quality gap cancels the decorrelation gain. Best blend over a weight sweep was +0.00012 (+0.15 sigma), inside the noise floor -- and that weight was itself chosen on validation, so the true value is lower still. Do not propose sequential-model blending as a score lever.",
+      "DENSE ITEM FEATURES (item long_view rate, item popularity, author rate, duration): MEASURED HERE with agent.error_analysis, REDUNDANT rather than merely weak. Standalone within-user AUC on valid: item long_view rate 0.6390, author rate 0.6371, item popularity 0.5395, duration_ms 0.4894, against the model's own 0.6772. The standalone numbers look substantial, but blending any of them into the model's scores HURTS at every weight tested (item rate: -0.00007 at w=0.99, -0.00044 at 0.95, -0.00144 at 0.90). The video/author ID embeddings already encode this. A strong standalone AUC is NOT evidence of a missing mechanism -- always check the residual.",
+      "USER-LEVEL FEATURES FOR GAUC: STRUCTURALLY USELESS, not merely unhelpful. GAUC ranks WITHIN a user, so any feature constant across that user's rows contributes exactly nothing. Measured: user long_view rate scores exactly 0.5000 within-user AUC, and every blend weight changes the score by exactly 0.0. Same for user-author affinity (0.5009) and user-author exposure count (0.5097). Only features that VARY WITHIN one user's impression list can move GAUC. Do not propose user activity/affinity/lifetime scalars as ranking features.",
+      "WITHIN-USER-VARYING SIDE FEATURES: MEASURED HERE, no usable signal. Within-user AUC on valid: item freshness (days since its last train impression) 0.5281, item trend (recent-half rate minus overall) 0.5102, position in the valid session 0.5106, hour of day 0.4858, (user,video) seen-in-train flag 0.5079, (user,video) prior long_view count 0.5042. Repeat exposure is near-irrelevant on this split: only 1.6% of validation rows have their (user,video) pair present in train.",
+      "USER-SEGMENT TARGETING: there is NO concentrated failure population to attack. Per-segment GAUC on the 16-seed ensemble is FLAT at 0.6685-0.6932 (range 0.0247) across train impressions/user, train positives/user, and valid list length. nDCG@5 varies far more (0.4313-0.8625) but that is MECHANICAL -- longer lists make top-5 harder -- not a model weakness. Error is diffuse, NOT explained by label noise -- see the LABEL-NOISE CORRECTION entry. Do not propose experiments aimed at 'sparse users', 'cold items' or similar segments; also note 0.0% of validation rows involve an item unseen in train, so there is no cold-start population at all.",
+      "METRIC STRUCTURE (not a dead end -- a constraint every proposal must respect). primary = mean(GAUC, nDCG@5). The official nDCG@5 scores zero-positive users as 0.0 and INCLUDES them in the mean; they are 6634 of 21956 validation users (30.2%) and no model can fix them. That is why the ceiling is 0.8484 rather than 1.0. GAUC is weighted by each user's positive count, so heavy-positive users dominate it. Current standing: nDCG@5 is at 77% of its achievable maximum, GAUC at 67% -- GAUC has more remaining headroom of the two.",
+      "GAUC AND nDCG@5 DO NOT TRADE OFF on this benchmark. Checked across all 92 scored experiments on record (agent.frontier metric_conflicts): ZERO directions help one metric while hurting the other beyond the noise floor. They move together. So optimising the primary is not hiding a lever aimed at half the objective, and there is no point proposing an experiment justified as 'improves nDCG@5 at some GAUC cost' -- no such trade has been observed here.",
+      "MENU SEARCH SPACE IS ESSENTIALLY EXHAUSTED (as of this session). Of the 45 axis-options, 14 are recorded dead ends and the rest have been run. The only options never tried are: data_extras=video_stats_features and random_log_test_period (both LOCKED for leakage/test-period reasons), training=k32 (embedding capacity -- an organiser-measured dead end), multitask=censored_watch_time (the watch-time-as-auxiliary mechanism is already discredited: the graded variant was a perfect null, t=-0.23, and the ratio is confounded across duration buckets with a corrupted tail), and temporal=hour_bucket (a strict subset of the hour_plus_dow already in the best config). Further gains must come from ensembling or from OUTSIDE the menu -- not from another menu combination.",
+      "HETEROGENEOUS ENSEMBLING IS CLOSED, and the standing rule needed correcting. The rule was 'members must be independent AND comparably good', learned from failures that each satisfied only one half (snapshot: quality without independence; bagging: independence without quality; gru4rec: independent but 2.1 sigma weaker). PRE-REGISTERED TEST HERE with BOTH halves satisfied -- multitask=aux_click_like_forward vs the incumbent, quality gap 0.28 sigma, cross-config rank-correlation 0.9601 against 0.9839 for same-config seeds, so genuinely MORE decorrelated and statistically indistinguishable in quality. All 16+16 seeds, equal weights, no weight sweep, no subset search, one validation comparison. Result: combined k=32 scored 0.60552 vs base k=16's 0.60541, +0.00011 = +0.14 sigma, below the pre-set 0.0004 threshold. REJECTED. The corrected lesson: on this benchmark the residual error is SHARED, so decorrelating the CONFIGURATION does not decorrelate the ERRORS enough to matter -- NOT explained by label noise -- see the LABEL-NOISE CORRECTION entry. Do not propose further heterogeneous ensembling; the incumbent 16-seed single-config ensemble stands at 0.60541.",
+      "LABEL-NOISE CORRECTION (supersedes earlier reasoning). The claim that this benchmark's plateau is mostly irreducible label noise rested on '20.6% of repeated (user,video) pairs disagree with themselves'. That statistic is TRUE but was badly over-generalised. Measured precisely: only 4.1% of train (user,video) pairs repeat at all, so the disagreeing ones are 1.72% of train rows; in valid 3.2% repeat, 10.2% of those disagree, 1.09% of rows. And only 0.177% of within-user positive-negative pairs are FEATURE-IDENTICAL and therefore unrankable by any model -- a hard ceiling of 0.99911 on unweighted pair-AUC against an observed 0.707. CONCLUSION: there is NO measurement establishing that this task is noise-limited. Do not cite the 20.6% figure as evidence for a ceiling.",
+      "DISCARDED RAW COLUMNS ARE NOT A HIDDEN LEVER: MEASURED HERE (agent.residual_screen). The cache reads 13 of 19 log columns, 1 of 12 video columns and 0 of 31 user columns. A gradient-boosted model given ALL causally-available discarded item attributes (tag, music_id, video_type, upload_type, item age, server_width/height, aspect, video_duration) plus context reaches 0.64904 within-user AUC standalone versus the incumbent's 0.67720. Blended into the incumbent at a weight FIXED IN ADVANCE and resampled 5 times: +0.00031 mean (+0.39 sigma) +/- 0.00032, t=2.14. So a residual IS statistically detectable but is under HALF the seed-noise scale -- not worth a mechanism. Note tag itself measured -0.09 sigma residual and user x tag affinity +0.04 sigma. This shows there is no further signal in Pure's FEATURE COLUMNS. It does NOT show the task is at its ceiling -- see the LEARNING CURVE entry, which shows the model is limited by ROW COUNT, a different axis entirely.",
+      "PER-USER MONOTONE SCORE TRANSFORMS ARE STRUCTURALLY NULL. Both metrics rank WITHIN a user, so any strictly increasing per-user transform of the scores -- affine normalisation (s-mean)/std, per-user mean shift, per-user shrinkage -- cannot change GAUC or nDCG@5 by construction. MEASURED HERE: two Path B nodes doing exactly this returned IDENTICAL metrics (0.60340 / 0.66981 / 0.53700) and were both recorded as successes. Before proposing any post-processing mechanism, check that it can reorder items WITHIN a single user's list.",
+      "C2 CLOSED -- auxiliary heads on the four never-cached feedback signals (multitask=aux_social4: is_follow, is_comment, is_hate, is_profile_enter). PRE-REGISTERED controlled probe, 5 paired seeds, aux weight 0.2 untuned, control retrained fresh on the rebuilt cache: control 0.60448 -> treatment 0.60406, mean paired delta -0.00043 (-0.53 sigma), 0/5 wins, t=-5.43. GAUC -0.80 sigma, nDCG@5 -0.26 sigma. By the thresholds fixed in advance this is INCONCLUSIVE ON MAGNITUDE (under the 0.0008 bar), but the DIRECTION is certain: it lost on every seed. Not a positive lever. MECHANISM: the four signals carry little information not already in click/like/forward. Correlation with long_view is is_profile_enter +0.146, is_comment +0.059, is_follow +0.025 and is_hate -0.004 (essentially zero -- its 0.246-vs-0.337 conditional gap is real but rests on only 480 positives), against is_click's +0.761. They are also strongly enriched INSIDE the existing signals: is_follow is 22x more likely given is_like, is_comment 8x, is_profile_enter 2-4x. Adding four rare heads splits the auxiliary weight and dilutes the shared representation, which is why the harm lands mostly on GAUC. Do not revisit feedback-signal auxiliary tasks on this dataset.",
+      "LEARNING CURVE: THE MODEL IS DATA-LIMITED, NOT INFORMATION-LIMITED. MEASURED HERE (agent.learning_curve), incumbent config, 3 seeds per point, validation untouched: 12.5% of train rows -> 0.58887, 25% -> 0.59532, 50% -> 0.60036, 100% -> 0.60446. The LAST doubling still gains +0.00410 (+5.12 sigma) and the per-doubling gain decays only by a factor of ~0.797. The FM fits ~26k user and ~7.5k video embeddings on 1.14M rows, and the measured error is diffuse and flat across every segment -- the signature of estimation noise, not of missing features. CONSEQUENCE: the biggest remaining lever is MORE ROWS over the same users and items, not more features or another architecture. KuaiRand-1K (1.1GB, 11.7M rows) and KuaiRand-27K (9.9GB, 322M rows, same ~27k user population) are EXPLICITLY PERMITTED training data -- the rule is 'training must rely only on the KuaiRand datasets listed below' and all three variants are listed -- and they contain the standard exposure logs that Pure omits. Filtering to dates <= 20220421 keeps the hidden test untouched. Extrapolating the observed decay over ~8 doublings projects roughly +0.0135 single-model. CAVEATS: that is an extrapolation, and 27K's extra impressions are ALGORITHMICALLY exposed rather than randomly exposed, so distribution shift will discount it -- pre-train representations there and fine-tune on Pure rather than training directly on the mixed distribution."
+    ],
+    "hidden_test_discipline": "Generated solutions may WRITE test-split scores to disk (scores_test.npy) but must never read test labels or compute test metrics; only the harness scores test once at the very end."
+  }
+}

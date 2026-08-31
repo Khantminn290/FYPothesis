@@ -1,1 +1,312 @@
 # FYPothesis
+
+FYPothesis is an autonomous machine-learning research agent for recommender
+systems, built for TikTok TechJam 2026 Track 2. Given the KuaiRand-Pure dataset,
+it forms hypotheses, writes complete experiment scripts, trains and evaluates
+them, reflects on the evidence, recovers from failures, and decides whether to
+confirm, ensemble, pivot, or stop.
+
+The project is designed around one principle: a higher validation score is not
+enough by itself. FYPothesis records how each result was obtained and prevents a
+single lucky seed, validation-selected ensemble, or test-label leak from becoming
+the submitted result.
+
+## Result
+
+The final model was evaluated once on the hidden test split after the
+configuration and 16 ensemble seeds were fixed.
+
+| Split | System | GAUC | nDCG@5 | Primary |
+|---|---|---:|---:|---:|
+| Validation | Official FM baseline | 0.6674 | 0.5357 | 0.6016 |
+| Validation | FYPothesis | **0.67212** | **0.53870** | **0.60541** |
+| Validation | Absolute improvement | **+0.00472** | **+0.00300** | **+0.00381** |
+| Hidden test | Official FM baseline | 0.6610 | 0.5282 | 0.5946 |
+| Hidden test | FYPothesis | **0.66510** | **0.53110** | **0.59810** |
+| Hidden test | Absolute improvement | **+0.0041** | **+0.0029** | **+0.0035** |
+
+The submitted model is a rank-normalized mean of all 16 predeclared seeds of one
+configuration. No seed, subset, or blend weight was selected using validation
+performance. The complete result record is in
+[`results/final_results.json`](results/final_results.json), and the one-time
+evaluation proof is in
+[`results/final_evaluation.lock`](results/final_evaluation.lock).
+
+## Problem definition
+
+FYPothesis follows the task definition pinned by the organizer's Starter Kit:
+
+- Benchmark: KuaiRand-Pure.
+- Task: rank each user's logged impressions.
+- Positive label: `long_view`.
+- Metrics: GAUC and nDCG@5.
+- Primary score: `mean(GAUC, nDCG@5)`.
+- Training data: the fixed 8–21 April 2022 train window only.
+- Development feedback: the fixed 22–28 April validation window.
+- Hidden test: the fixed 29 April–8 May window, evaluated once for submission.
+- Hard limits: 50 iterations and six hours per benchmark run.
+- Convergence: the organizers' published rule, `epsilon=0.002` and `N=3`.
+
+The older challenge-summary line mentioning click, NDCG@10, and Recall@50
+conflicts with the detailed benchmark definition and executable Starter Kit.
+FYPothesis uses the Starter Kit's authoritative `long_view`, GAUC, and nDCG@5
+implementation without changing it.
+
+## How FYPothesis works
+
+Each outer-loop iteration follows the same evidence-producing workflow:
+
+1. Read the append-only research history and current evidence state.
+2. Inspect train/validation data through bounded, read-only tools.
+3. Propose a measurable hypothesis and expected effect before execution.
+4. Generate a complete Python experiment rather than an untracked code fragment.
+5. Run syntax, capability, configuration, and leakage checks.
+6. Execute the experiment in a subprocess whose test outcome columns are
+   mechanically removed.
+7. Score validation predictions with the unchanged organizer evaluator.
+8. Record the hypothesis, code diff, metrics, resource use, and recovery events.
+9. Repair, pivot, confirm across paired seeds, ensemble, or stop.
+
+The search space covers ranking losses, negative sampling, user-history models,
+multi-task learning, model families, temporal features, training schedules,
+sample weighting, and regularization. Leakage-sensitive data options are hidden
+from the model and rejected by the validator unless a human deliberately enables
+and records an override.
+
+### Evidence policy
+
+- A single-seed gain is `PRELIMINARY` and cannot change the submission.
+- Promotion requires paired multi-seed confirmation with both arms fixed first.
+- The final ensemble keeps every predeclared seed from one configuration.
+- Failed or malformed runs are journaled but cannot become evidence.
+- The validation-best eligible checkpoint is selected when the official
+  convergence rule fires.
+
+### Final configuration
+
+| Component | Choice |
+|---|---|
+| Model | NumPy factorization machine |
+| Loss | BPR pairwise ranking loss |
+| Negative sampling | Uniform, one negative per positive |
+| User history | Recency-weighted positive-history pooling |
+| Temporal context | Hour of day and day of week |
+| Training | Lower learning rate with a longer schedule |
+| Ensemble | Rank-normalized mean over seeds 0–15 |
+
+## Autonomy, robustness, and resource use
+
+The recorded competition run converged at node 8 and selected node 4 as the
+officially eligible validation-best checkpoint.
+
+| Measure | Recorded value |
+|---|---:|
+| Outer-loop iterations | 9 of 50 |
+| Training executions | 27 |
+| Manual interventions | 0 |
+| LLM calls | 17 |
+| LLM tokens | 203,602 |
+| LLM spend | USD 0.718218 |
+| Agent wall-clock | 42.8 minutes |
+| GPU hours | 0.0 |
+
+FYPothesis classifies syntax, runtime, timeout, artifact, and evaluation failures
+by consequence. It can repair a broken implementation, skip an invalid result,
+or pivot to a cheaper experiment without promoting a failed candidate. The
+fault-injection evidence is summarized in
+[`results/JUDGE_PACKET.md`](results/JUDGE_PACKET.md).
+
+## Repository structure
+
+```text
+FYPothesis/
+├── run_agent.py                 # autonomous-run entry point and configuration
+├── app.py                       # live-run and submission-proof dashboard
+├── agent/                       # planning, execution, evidence, recovery, reports
+├── runtime/                     # model training, data boundaries, research tools
+├── config/                      # search space, model defaults, budget settings
+├── kuairand-starter-kit/        # organizer data loader, evaluator, and baseline
+├── tests/test_harness.py        # deterministic safety and orchestration checks
+├── logs/                        # required run journal, diffs, metrics, and scripts
+├── results/                     # final result, manifest, lock, and judge packet
+├── docs/DEVPOST_SUBMISSION.md   # submission-ready project description
+└── RESULTS.md                   # generated results and resource summary
+```
+
+## Setup and installation
+
+The project was verified with Python 3.12.10. Training is CPU-capable; a GPU is
+not required for the submitted NumPy model.
+
+```bash
+git clone https://github.com/Khantminn290/FYPothesis.git
+cd FYPothesis
+
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+Download KuaiRand-Pure into the Starter Kit directory. The archive is ignored by
+Git and is not redistributed in this repository.
+
+```bash
+cd kuairand-starter-kit
+curl -L -o KuaiRand-Pure.tar.gz \
+  https://zenodo.org/records/10439422/files/KuaiRand-Pure.tar.gz
+tar -xzf KuaiRand-Pure.tar.gz
+cd ..
+```
+
+An API key is needed only for a new autonomous research run. It is not needed to
+rebuild the fixed final model, verify stored metadata, or use the dashboard.
+
+```bash
+cp .env.example .env
+# Edit .env and add either OPENAI_API_KEY or ANTHROPIC_API_KEY.
+```
+
+`.env`, datasets, caches, generated predictions, and submission CSVs are ignored
+and must never be committed.
+
+## Reproduce the results
+
+Run every command below from the repository root after installing the dataset.
+
+### 1. Verify the harness and official baseline
+
+```bash
+python tests/test_harness.py
+python -m agent.baseline_repro
+```
+
+The harness makes no LLM calls. Some executor-boundary tests load the local
+KuaiRand cache, so the dataset must be installed first. The baseline command
+stores the organizer-script hashes and reproduced metrics under `logs/baseline/`.
+
+### 2. Rebuild and verify the submitted validation model
+
+Prediction arrays are intentionally not committed. Rebuild all 16 fixed members,
+then recompute the ensemble with the unchanged evaluator:
+
+```bash
+python -m agent.final_ensemble --seeds 16
+python -m agent.verify_incumbent
+```
+
+Expected validation result:
+
+```text
+GAUC 0.67212 | nDCG@5 0.53870 | primary 0.60541
+```
+
+### 3. Rebuild and validate submission files
+
+```bash
+python -m agent.make_submission \
+  --split valid --out submission_valid.csv --score --ensemble
+
+python -m agent.make_submission \
+  --split test --out submission_test.csv --ensemble
+
+python kuairand-starter-kit/submit.py \
+  --data_dir kuairand-starter-kit/KuaiRand-Pure/data \
+  --check --split test submission_test.csv
+```
+
+These commands regenerate predictions and validate schema/alignment. They do not
+repeat the hidden-test evaluation. The one allowed evaluation has already been
+recorded, and `--final-test-eval` now refuses to run because the lock exists.
+
+### 4. Regenerate submission documents
+
+```bash
+python -m agent.iteration_log
+python -m agent.manifest
+python -m agent.results_report
+python -m agent.judge_packet
+python -m agent.devpost
+```
+
+### 5. Open the proof dashboard
+
+```bash
+streamlit run app.py
+```
+
+The dashboard renders the committed manifest, journal, recovery evidence, final
+result, and downloadable submission documents. It can also launch a new live
+research run, but only after the user explicitly arms the LLM-budget control.
+The one-time hidden-test evaluation is never exposed as a dashboard button.
+For recording or judging walkthroughs, the **Demo run** tab provides a clearly
+labelled 24-second simulation of observation, hypothesis selection, preflight
+rejection, recovery, evaluation, paired confirmation, ensembling, and stopping;
+it starts no training process and makes no API call.
+
+### 6. Start a new autonomous competition run
+
+This is optional, uses the configured LLM API, and creates a new research run:
+
+```bash
+python run_agent.py --competition --fresh
+```
+
+The resolved model, spend limit, iteration limit, training-run limit, and
+wall-clock limit are printed before the first paid call.
+
+## Submission artifacts
+
+| Deliverable | Location |
+|---|---|
+| Project overview and reproduction guide | [`README.md`](README.md) |
+| Devpost project description | [`docs/DEVPOST_SUBMISSION.md`](docs/DEVPOST_SUBMISSION.md) |
+| Required per-iteration log | [`logs/ITERATION_LOG.md`](logs/ITERATION_LOG.md) |
+| Machine-readable journal | [`logs/journal.jsonl`](logs/journal.jsonl) |
+| Generated experiment scripts | [`logs/solutions/`](logs/solutions/) |
+| Per-iteration code diffs | [`logs/diffs/`](logs/diffs/) |
+| Results and resource usage | [`RESULTS.md`](RESULTS.md) |
+| Judge evidence packet | [`results/JUDGE_PACKET.md`](results/JUDGE_PACKET.md) |
+| Machine-readable final result | [`results/final_results.json`](results/final_results.json) |
+| Canonical evidence manifest | [`results/manifest.json`](results/manifest.json) |
+| One-time evaluation proof | [`results/final_evaluation.lock`](results/final_evaluation.lock) |
+
+## Compliance safeguards
+
+- Only KuaiRand-Pure is used; there is no external training data or pretrained
+  weight trained on benchmark labels.
+- Generated experiments receive train and validation data plus a test view with
+  all outcome columns removed.
+- The raw dataset and real cache are inaccessible to the generated subprocess
+  during execution.
+- Static leakage checks reject target-derived feature construction before
+  training.
+- Validation is the only feedback used for search, early stopping, and model
+  selection.
+- The Starter Kit evaluator remains unchanged, and its hash is recorded.
+- Every iteration records its hypothesis, full script, code diff, metrics, token
+  use, wall-clock time, and error/recovery events.
+- The final-evaluation lock records the submission hash, timestamp, and one-shot
+  metrics.
+
+## Limitations and future work
+
+- The hidden-test gain is real but modest (`+0.0035` primary), and the benchmark
+  has narrow headroom relative to seed noise.
+- The final ensemble reduces variance within one FM/BPR configuration; it does
+  not obtain additional diversity from multiple competitive model families.
+- Autonomous feature discovery did not produce a confirmed improvement in the
+  submitted run.
+- KuaiRand-1k and KuaiRand-27k bonus benchmarks were not attempted.
+- Search is sequential by default. Safe parallel exploration could reduce
+  wall-clock time, but would require stricter shared-budget coordination.
+- A future version should improve independent hypothesis discovery, add broader
+  paired ablations, and scale the data cache for the bonus datasets.
+
+## Team member contributions
+
+This is a solo submission by **Kaung Khant Minn**, who implemented the agent
+architecture, research policy, experiment runtime, evidence and convergence
+system, test-label boundary, robustness evaluation, dashboard, documentation,
+and the final competition run. VS Code, Git, Codex, and Claude Code were used as
+development tools; they are not listed as team members.

@@ -1,0 +1,51 @@
+# raw dataset (download it yourself, see README) — too large / not ours to redistribute in git
+kuairand-starter-kit/KuaiRand-Pure/
+kuairand-starter-kit/KuaiRand-Pure.tar.gz
+
+# generated submission files
+submission*.csv
+submission_upload/
+
+# generated experiment-tree visualisation (rebuild: python3 -m agent.viz)
+viz/
+
+# secrets — never commit API keys
+.env
+
+# derived data cache (rebuilt automatically on first train_lib use)
+runtime/cache/
+runtime/cache_sandbox/
+
+# per-worker git worktrees for parallel exploration (agent/worktree.py) --
+# each is its own full checkout, managed by `git worktree`, torn down/rebuilt
+# as needed; never a place that holds anything to commit
+.worktrees/
+
+# ensemble member prediction arrays: large, and exactly reproducible from the
+# recorded seeds via `python3 -m agent.final_ensemble --seeds 16`. The result
+# JSON and each member's metrics.json/solution.py stay committed.
+logs/final_ensemble/*/scores_*.npy
+# same rationale for the superseded ensemble experiment, and for the raw
+# per-epoch capture (results/epoch_sensitivity.json is derived from
+# logs/opus_research/epoch_primaries.json, not from the raw array).
+logs/ensemble_exp/*/*/scores_*.npy
+logs/opus_research/epoch_scores.npy
+# atomic-publish safety net: the PREVIOUS ensemble is copied here when a
+# new one is published (agent/loop.py). Local rollback insurance, and a
+# duplicate of artifacts already recorded -- not submission evidence.
+logs/submission_history/
+# per-iteration run outputs (large score arrays; journal + solutions + best_* stay committed)
+logs/runs/
+logs/archive_*/
+
+# paired-confirmation predictions are reproducible from their committed scripts,
+# metrics, resources, and seeds; keep those records, not the large arrays
+logs/confirm/*/*/scores_*.npy
+
+
+# python
+__pycache__/
+*.pyc
+
+# os
+.DS_Store

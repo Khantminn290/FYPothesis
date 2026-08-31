@@ -1,0 +1,177 @@
+"""Track organizer iterations separately from training executions.
+
+Every journalled iteration counts toward the organizer's 50-iteration cap,
+including crashes and preflight rejections that produce no validation score.
+Training executions are a separate compute counter: a preflight rejection uses
+one iteration but zero training runs, while a paired confirmation uses one
+iteration and six training runs.
+"""
+from __future__ import annotations
+
+# Preflight retries also have a tighter local cap so contract failures cannot
+# consume the entire organizer iteration allowance.
+MAX_PREFLIGHT_RETRIES = 3
+
+PREFLIGHT_MARKER = "PREFLIGHT REJECTED"
+
+
+def was_preflight_rejection(node) -> bool:
+    """Rejected before execution: no compute, no answer, no charge."""
+    trace = (getattr(node, "error_trace", None) or "")
+    return (getattr(node, "status", None) == "error"
+            and PREFLIGHT_MARKER in trace
+            and not getattr(node, "wall_clock_seconds", 0.0))
+
+
+def consumes_budget(node) -> bool:
+    """Every recorded node is an organizer-counted iteration."""
+    return True
+
+
+def count(nodes) -> dict:
+    """Break a run's nodes into what was actually spent."""
+    consumed = list(nodes)
+    preflight = [n for n in nodes if was_preflight_rejection(n)]
+    scored = [n for n in consumed
+              if getattr(n, "status", None) == "success" and getattr(n, "metrics", None)]
+    crashed = [n for n in consumed if getattr(n, "status", None) == "error"
+               and not was_preflight_rejection(n)]
+    wall = sum(getattr(n, "wall_clock_seconds", 0.0) or 0.0 for n in nodes)
+    return {"nodes_total": len(nodes),
+            "iterations_consumed": len(consumed),
+            "preflight_rejections": len(preflight),
+            "experiments_completed": len(scored),
+            "experiments_crashed": len(crashed),
+            "training_wall_clock_s": round(wall, 1),
+            "crash_rate_of_consumed": (round(len(crashed) / len(consumed), 3)
+                                       if consumed else 0.0)}
+
+
+def consecutive_preflight_failures(nodes) -> int:
+    """How many preflight rejections in a row, counting back from the end."""
+    n = 0
+    for node in reversed(list(nodes)):
+        if was_preflight_rejection(node):
+            n += 1
+        else:
+            break
+    return n
+
+
+class Ledger:
+    """Separate counters for things that are not interchangeable.
+
+    The ambiguity this removes is real and was flagged in review: a paired
+    3-seed confirmation is ONE outer-loop node and SIX training executions.
+    Reporting it as "one iteration" understates compute by 6x; reporting it as
+    six iterations overstates the number of decisions the agent made. Both are
+    wrong, so both are counted, separately, and the report says which is which.
+
+    Counting rule, stated once and applied everywhere:
+
+        outer-loop node      one decision the agent made
+        training execution   one model actually trained
+        preflight rejection  one outer-loop iteration, zero training executions
+
+    A paired 3-seed confirmation therefore counts as:
+        +1 outer-loop node, +6 training executions, +1 completed experiment.
+    """
+
+    def __init__(self, max_iterations: int | None = None,
+                 max_training_runs: int | None = None):
+        self.max_iterations = max_iterations
+        self.max_training_runs = max_training_runs
+        self.training_runs = 0
+        self.training_crashes = 0
+        # Artifact reuse -- a previously completed ensemble member on disk. Real
+        # historical evidence, but no compute, so it is tracked separately and
+        # never charged against the training-run budget. There is no general
+        # execution cache in this repository.
+        self.reused_artifacts = 0
+        self.duplicate_reuse = 0
+        self.unique_observations = 0
+
+    def record_training(self, n: int = 1, crashed: int = 0, reused: int = 0,
+                        unique: int | None = None, duplicates: int = 0) -> None:
+        """`n` is compute actually spent.
+
+        `reused` are artifacts obtained for free and must NOT be charged -- an
+        ensemble over members already on disk was previously reporting spend
+        that never happened. `unique` is how many DISTINCT observations resulted;
+        `duplicates` are repeat references to observations already counted, which
+        add neither compute nor evidence.
+
+        A CRASHED run is charged as compute and excluded from evidence, which
+        is not a contradiction: the compute is spent and unrecoverable, but no
+        measurement came out of it. execution_events already encodes this --
+        FAILED_EXECUTION is in COSTS_COMPUTE and absent from IS_OBSERVATION --
+        and the two must not disagree, or the same crash counts as support here
+        and as nothing there.
+        """
+        self.training_runs += int(n)
+        self.training_crashes += int(crashed)
+        self.reused_artifacts += int(reused)
+        self.duplicate_reuse += int(duplicates)
+        self.unique_observations += int(
+            unique if unique is not None
+            else max(0, int(n) - int(crashed)) + int(reused))
+
+    def training_runs_left(self) -> int | None:
+        if self.max_training_runs is None:
+            return None
+        return max(0, self.max_training_runs - self.training_runs)
+
+    def can_afford(self, n_runs: int) -> bool:
+        """Is there budget to COMPLETE an experiment costing n_runs?
+
+        Starting a 6-run confirmation with 2 runs left produces two arms that
+        cannot be paired and answers nothing, which is strictly worse than not
+        starting it.
+        """
+        left = self.training_runs_left()
+        return True if left is None else left >= int(n_runs)
+
+    def why_not(self, n_runs: int) -> str:
+        left = self.training_runs_left()
+        if left is None or left >= n_runs:
+            return ""
+        return (f"needs {n_runs} training runs, only {left} remain of "
+                f"{self.max_training_runs}")
+
+    def as_dict(self) -> dict:
+        return {"max_iterations": self.max_iterations,
+                "max_training_runs": self.max_training_runs,
+                "training_runs_used": self.training_runs,
+                "training_runs_left": self.training_runs_left(),
+                "training_crashes": self.training_crashes,
+                "reused_artifacts": self.reused_artifacts,
+                "duplicate_reuse_attempts": self.duplicate_reuse,
+                "unique_observations": self.unique_observations,
+                "note": ("training_runs_used is FRESH COMPUTE. reused_artifacts "
+                         "are previously completed members: real historical "
+                         "evidence, no compute, excluded from the budget. "
+                         "unique_observations is what evidence may rest on; "
+                         "crashes and duplicates add neither.")}
+
+
+COUNTING_NOTE = (
+    "An outer-loop node is one decision; a training execution is one model "
+    "actually trained. A paired 3-seed confirmation is 1 node and 6 training "
+    "executions. A preflight rejection still counts toward the organizer's "
+    "50-iteration cap, but uses zero training executions; repeated rejections "
+    "are additionally capped."
+)
+
+
+def render(c: dict) -> str:
+    return "\n".join([
+        "BUDGET",
+        f"  iterations consumed    {c['iterations_consumed']} "
+        f"(of {c['nodes_total']} nodes)",
+        f"  preflight rejections   {c['preflight_rejections']}  "
+        f"(counted iteration, zero training executions)",
+        f"  experiments completed  {c['experiments_completed']}",
+        f"  experiments crashed    {c['experiments_crashed']}  "
+        f"(rate {c['crash_rate_of_consumed']:.0%} of consumed)",
+        f"  training wall-clock    {c['training_wall_clock_s']}s",
+    ])
