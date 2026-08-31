@@ -1,10 +1,10 @@
 {
   "schema": "results_manifest/1",
-  "generated_utc": "2026-08-31T20:13:21Z",
+  "generated_utc": "2026-08-31T20:30:58Z",
   "generator": "python3 -m agent.manifest",
   "repository": {
-    "sha": "08a0aeff9578a062fc3916ebca4a87883bf2989a",
-    "short_sha": "08a0aeff9578",
+    "sha": "f3ad569742b74c5c8e24cf9e0db573609cd3bbee",
+    "short_sha": "f3ad569742b7",
     "branch": "main",
     "dirty": false,
     "dirty_files": 0,
@@ -472,9 +472,9 @@
   },
   "tests": {
     "executed": true,
-    "passed": 1127,
+    "passed": 1125,
     "failed": 0,
-    "seconds": 23.9
+    "seconds": 23.2
   },
   "submission_artifacts": {
     "valid": {
