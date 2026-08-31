@@ -336,5 +336,3 @@ and presentation work:
   presentation, including the experiment tree, run-detail views, result
   summaries, judge-facing usability, and final quality assurance.
 
-VS Code, Git, Codex, and Claude Code were used as development tools; they are not
-listed as team members.
