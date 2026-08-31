@@ -1,6 +1,6 @@
 # Results — generated
 
-Generated `2026-08-31T20:12:42Z` by `python3 -m agent.results_report`. Every figure below is read from repository artifacts at generation time; nothing here is retyped from memory.
+Generated `2026-08-31T20:13:54Z` by `python3 -m agent.results_report`. Every figure below is read from repository artifacts at generation time; nothing here is retyped from memory.
 
 Tiers: **VERIFIED** recomputed during this generation · **OBSERVED** measured in a run and journalled · **OPEN** not established.
 
@@ -52,7 +52,7 @@ Source: `results/final_results.json`, written by the evaluation itself. One-shot
 
 ## Harness
 
-`python3 tests/test_harness.py` → **1127 passed, 0 failed** (23.4s) — **VERIFIED**
+`python3 tests/test_harness.py` → **1127 passed, 0 failed** (24.9s) — **VERIFIED**
 
 ## Convergence
 
