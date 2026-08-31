@@ -41,8 +41,7 @@ def is_generated_path(path: str) -> bool:
     """Whether a dirty path is run evidence rather than executable source."""
     path = path.strip()
     return (path.startswith(("logs/", "results/", "submission_"))
-            or path in ("RESULTS.md", "docs/DEVPOST_SUBMISSION.md",
-                        "agent/experience.md"))
+            or path in ("RESULTS.md", "agent/experience.md"))
 
 
 def _git(*args: str) -> str | None:

@@ -1,5 +1,5 @@
 """Run-report renderer: turns logs/journal.jsonl into a human-readable summary
-(for the Devpost writeup and results table).
+(for submission writeups and results tables).
 
 Usage: python3 -m agent.report [--json out.json]
 """

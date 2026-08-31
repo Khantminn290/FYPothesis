@@ -1,4 +1,4 @@
-"""Build the two judge-upload folders from verified canonical artifacts.
+"""Build the two minimal judge-upload folders from canonical artifacts.
 
 This does not train, score the hidden test, or mutate the research journal. It
 only copies already-produced evidence and submission CSVs into names that map
@@ -10,7 +10,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import shutil
@@ -32,14 +31,6 @@ def _copy(source: Path, target: Path) -> None:
         raise FileNotFoundError(f"required artifact is missing: {source}")
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, target)
-
-
-def _sha256(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def _csv_rows(path: Path) -> int:
@@ -74,8 +65,8 @@ def build(out: Path = DEFAULT_OUT) -> Path:
 Open `RUN_AND_ITERATION_LOG.md` first. It contains the hypothesis, reason,
 code-diff link, GAUC, nDCG@5, and error/recovery record for every journal node.
 
-- Journal records: {summary['journal_nodes']} (one mandatory baseline plus
-  {summary['iterations_used']} charged research iterations)
+- Journal records: {summary['journal_nodes']} charged iterations, including one
+  mandatory baseline
 - Iteration cap used: {summary['iterations_used']} of {summary['iteration_cap']}
 - Manual interventions: {summary['manual_interventions']}
 - Raw append-only record: `journal.jsonl`
@@ -88,23 +79,11 @@ and every script/diff link in `RUN_AND_ITERATION_LOG.md` resolves locally.
 """
     (run_dir / "README.md").write_text(run_readme)
 
-    # Deliverable 4: the test CSV is the canonical output; validation is
-    # included so judges can independently reproduce the reported table.
+    # Deliverable 4 contains only the Starter Kit submission and the required
+    # results/resource summary. Validation artifacts and internal provenance
+    # remain available in the public repository and need not be uploaded twice.
     test_csv = ROOT / "submission_test.csv"
-    valid_csv = ROOT / "submission_valid.csv"
     _copy(test_csv, final_dir / "submission.csv")
-    _copy(valid_csv, final_dir / "validation_submission.csv")
-    _copy(ROOT / "RESULTS.md", final_dir / "RESULTS_AND_RESOURCES.md")
-    _copy(ROOT / "results" / "final_results.json",
-          final_dir / "final_results.json")
-    _copy(ROOT / "results" / "final_evaluation.lock",
-          final_dir / "final_evaluation.lock")
-    _copy(ROOT / "results" / "manifest.json",
-          final_dir / "evidence_manifest.json")
-    _copy(ROOT / "logs" / "ensemble_results.json",
-          final_dir / "ensemble_results.json")
-    _copy(ROOT / "kuairand-starter-kit" / "baseline_scores.json",
-          final_dir / "official_baseline_scores.json")
 
     result = _load(ROOT / "results" / "final_results.json")
     baseline = _load(ROOT / "kuairand-starter-kit" / "baseline_scores.json")
@@ -140,52 +119,10 @@ rows. No bonus benchmark was attempted.
 | Manual interventions | {summary['manual_interventions']} |
 
 The submitted system is the rank-normalized mean of all 16 declared seeds of
-one configuration. `final_results.json` and `final_evaluation.lock` record the
-one-time final evaluation; `ensemble_results.json` records member provenance.
+one configuration. Full provenance, the one-time evaluation lock, and detailed
+verification evidence remain in the public repository.
 """
     (final_dir / "README.md").write_text(results_readme)
-
-    verification = {
-        "schema": "fypothesis_submission_bundle/1",
-        "benchmark": "KuaiRand-Pure",
-        "bonus_benchmarks_attempted": [],
-        "submission": {
-            "path": "04_FINAL_SUBMISSION_AND_RESULTS/submission.csv",
-            "data_rows": _csv_rows(test_csv),
-            "sha256": _sha256(test_csv),
-            "starter_kit_schema_checked": True,
-        },
-        "validation_submission": {
-            "path": "04_FINAL_SUBMISSION_AND_RESULTS/validation_submission.csv",
-            "data_rows": _csv_rows(valid_csv),
-            "sha256": _sha256(valid_csv),
-            "starter_kit_schema_and_metrics_checked": True,
-        },
-        "manual_interventions": summary["manual_interventions"],
-        "iterations_used": summary["iterations_used"],
-        "iteration_cap": summary["iteration_cap"],
-    }
-    (out / "VERIFICATION.json").write_text(json.dumps(verification, indent=2) + "\n")
-
-    upload_guide = """# FYPothesis submission upload guide
-
-Upload the folders according to the matching requirement numbers:
-
-1. `03_RUN_AND_ITERATION_LOGS/` - per-iteration evidence and autonomy summary.
-2. `04_FINAL_SUBMISSION_AND_RESULTS/` - KuaiRand-Pure `submission.csv`, results,
-   resource accounting, and verification/provenance records.
-
-The KuaiRand-1k and KuaiRand-27k bonus benchmarks were not attempted. Do not
-upload the raw KuaiRand dataset, local caches, `.env`, or API credentials.
-"""
-    (out / "UPLOAD_GUIDE.md").write_text(upload_guide)
-
-    checksum_lines = []
-    for path in sorted(p for p in out.rglob("*") if p.is_file()):
-        if path.name == "CHECKSUMS.sha256":
-            continue
-        checksum_lines.append(f"{_sha256(path)}  {path.relative_to(out)}")
-    (out / "CHECKSUMS.sha256").write_text("\n".join(checksum_lines) + "\n")
     return out
 
 
@@ -197,7 +134,11 @@ def main() -> None:
         made = build(args.out.resolve())
     except (FileExistsError, FileNotFoundError) as exc:
         sys.exit(str(exc))
-    print(f"built {made.relative_to(ROOT)}")
+    try:
+        display = made.relative_to(ROOT)
+    except ValueError:
+        display = made
+    print(f"built {display}")
 
 
 if __name__ == "__main__":

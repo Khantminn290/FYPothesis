@@ -129,7 +129,6 @@ FYPothesis/
 ├── tests/test_harness.py        # deterministic safety and orchestration checks
 ├── logs/                        # required run journal, diffs, metrics, and scripts
 ├── results/                     # final result, manifest, lock, and judge packet
-├── docs/DEVPOST_SUBMISSION.md   # submission-ready project description
 └── RESULTS.md                   # generated results and resource summary
 ```
 
@@ -238,7 +237,6 @@ now refuses to run because the lock exists.
 python3 -m agent.iteration_log
 python3 -m agent.manifest --run-tests
 python3 -m agent.judge_packet
-python3 -m agent.devpost
 python3 -m agent.results_report --run-tests
 ```
 
@@ -274,7 +272,6 @@ wall-clock limit are printed before the first paid call.
 | Deliverable | Location |
 |---|---|
 | Project overview and reproduction guide | [`README.md`](README.md) |
-| Devpost project description | [`docs/DEVPOST_SUBMISSION.md`](docs/DEVPOST_SUBMISSION.md) |
 | Required per-iteration log | [`logs/ITERATION_LOG.md`](logs/ITERATION_LOG.md) |
 | Machine-readable journal | [`logs/journal.jsonl`](logs/journal.jsonl) |
 | Generated experiment scripts | [`logs/solutions/`](logs/solutions/) |
@@ -319,8 +316,25 @@ wall-clock limit are printed before the first paid call.
 
 ## Team member contributions
 
-This is a solo submission by **Kaung Khant Minn**, who implemented the agent
-architecture, research policy, experiment runtime, evidence and convergence
-system, test-label boundary, robustness evaluation, dashboard, documentation,
-and the final competition run. VS Code, Git, Codex, and Claude Code were used as
-development tools; they are not listed as team members.
+The five team members contributed across the research, engineering, evaluation,
+and presentation work:
+
+- **Kaung Khant Minn** led the overall architecture and integration of
+  FYPothesis. He connected the autonomous agent loop, evidence and convergence
+  system, final competition runs, dashboard, documentation, and submission
+  verification into one reproducible project, and coordinated the final release.
+- **Min Wai Phyo** contributed to experiment design and research policy,
+  including hypothesis selection, the modification search space, confirmation
+  strategy, and interpretation of recommendation-model results.
+- **Samuel Christy George** contributed to the training and data pipeline,
+  including model execution, Starter Kit evaluator integration, reproducibility,
+  and validation of the final ensemble workflow.
+- **Mani Kumar Prateek** contributed to safety and reliability, including data
+  boundaries, leakage protection, preflight and output-contract checks, failure
+  classification, and recovery testing.
+- **Bill Sujith Kumaar** contributed to the Streamlit interface and submission
+  presentation, including the experiment tree, run-detail views, result
+  summaries, judge-facing usability, and final quality assurance.
+
+VS Code, Git, Codex, and Claude Code were used as development tools; they are not
+listed as team members.

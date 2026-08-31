@@ -6140,14 +6140,6 @@ def test_judge_packet_is_generated():
               norm(disk) == norm(text),
               "run `python3 -m agent.judge_packet` to refresh it")
 
-    from agent import devpost as DP
-    dev = DP.build(d)
-    check("the Devpost narrative is generated from the same score",
-          f"{s['reported']['primary']:.5f}" in dev)
-    check("...and carries dynamic artifact attribution",
-          s["how_produced"]["originally_built_by"] in dev)
-
-
 def test_submission_artifacts_survive_fresh():
     """Regression: a previous headline became unreproducible because --fresh
     archived the ensemble member arrays while the JSON quoting them stayed
